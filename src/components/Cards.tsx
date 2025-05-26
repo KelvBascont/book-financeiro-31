@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, CreditCard, Calendar, AlertCircle } from 'lucide-react';
+import { Plus, CreditCard, Calendar, AlertCircle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFormatters } from '@/hooks/useFormatters';
 
 const Cards = () => {
   const { toast } = useToast();
+  const formatters = useFormatters();
   const [showAddCard, setShowAddCard] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   
@@ -32,6 +34,7 @@ const Cards = () => {
   const mockCards = [
     { id: '1', name: 'Nubank', dueDate: 15, closingDate: 8 },
     { id: '2', name: 'Itaú', dueDate: 5, closingDate: 28 },
+    { id: '3', name: 'Bradesco', dueDate: 10, closingDate: 3 },
   ];
 
   const mockExpenses = [
@@ -53,6 +56,15 @@ const Cards = () => {
       billingMonth: 'Jun/2024',
       isInstallment: true,
       installments: '3/12'
+    },
+    {
+      id: '3',
+      cardId: '2',
+      description: 'Farmácia',
+      amount: 85.50,
+      purchaseDate: '2024-05-28',
+      billingMonth: 'Jun/2024',
+      isInstallment: false
     }
   ];
 
@@ -75,6 +87,25 @@ const Cards = () => {
     setShowAddCard(false);
   };
 
+  const handleAddExpense = () => {
+    if (!expenseForm.cardId || !expenseForm.purchaseDate || !expenseForm.description || !expenseForm.amount) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Despesa registrada!",
+      description: `Despesa de ${formatters.currency(parseFloat(expenseForm.amount))} foi adicionada`,
+    });
+    
+    setExpenseForm({ cardId: '', purchaseDate: '', description: '', amount: '', isInstallment: false, installments: '' });
+    setShowAddExpense(false);
+  };
+
   const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
     const purchase = new Date(purchaseDate);
     const month = purchase.getMonth();
@@ -82,30 +113,73 @@ const Cards = () => {
     
     if (purchase.getDate() > closingDate) {
       const billingMonth = new Date(year, month + 2, 1);
-      return billingMonth.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      return formatters.dateMonthYear(billingMonth);
     } else {
       const billingMonth = new Date(year, month + 1, 1);
-      return billingMonth.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      return formatters.dateMonthYear(billingMonth);
     }
   };
 
+  const getTotalExpenses = () => {
+    return mockExpenses.reduce((total, expense) => total + expense.amount, 0);
+  };
+
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Gestão de Cartões</h2>
-          <p className="text-gray-600 mt-1">Cadastre cartões e registre suas despesas</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gestão de Cartões</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Cadastre cartões e registre suas despesas</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddCard(!showAddCard)} variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={() => setShowAddCard(!showAddCard)} variant="outline" className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Novo Cartão
           </Button>
-          <Button onClick={() => setShowAddExpense(!showAddExpense)} className="bg-orange-500 hover:bg-orange-600">
+          <Button onClick={() => setShowAddExpense(!showAddExpense)} className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nova Despesa
           </Button>
         </div>
+      </div>
+
+      {/* Resumo dos gastos */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total de Gastos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatters.currency(getTotalExpenses())}
+                </p>
+              </div>
+              <CreditCard className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Cartões Ativos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockCards.length}</p>
+              </div>
+              <CreditCard className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Despesas do Mês</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockExpenses.length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {showAddCard && (
@@ -117,7 +191,7 @@ const Cards = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="cardName">Nome do Cartão *</Label>
                 <Input
@@ -152,11 +226,11 @@ const Cards = () => {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddCard(false)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAddCard(false)} className="w-full sm:w-auto">
                 Cancelar
               </Button>
-              <Button onClick={handleAddCard}>
+              <Button onClick={handleAddCard} className="w-full sm:w-auto">
                 Cadastrar Cartão
               </Button>
             </div>
@@ -173,7 +247,7 @@ const Cards = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="expenseCard">Cartão *</Label>
                 <Select value={expenseForm.cardId} onValueChange={(value) => setExpenseForm({ ...expenseForm, cardId: value })}>
@@ -230,7 +304,7 @@ const Cards = () => {
             </div>
             
             {expenseForm.isInstallment && (
-              <div className="w-32">
+              <div className="w-full sm:w-32">
                 <Label htmlFor="installments">Número de Parcelas</Label>
                 <Input
                   id="installments"
@@ -245,9 +319,9 @@ const Cards = () => {
             )}
 
             {expenseForm.purchaseDate && expenseForm.cardId && (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-blue-600" />
-                <span className="text-sm text-blue-800">
+              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <span className="text-sm text-blue-800 dark:text-blue-200">
                   Esta despesa será cobrada na fatura de{' '}
                   <strong>
                     {calculateBillingMonth(expenseForm.purchaseDate, mockCards.find(c => c.id === expenseForm.cardId)?.closingDate || 0)}
@@ -256,11 +330,11 @@ const Cards = () => {
               </div>
             )}
             
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddExpense(false)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAddExpense(false)} className="w-full sm:w-auto">
                 Cancelar
               </Button>
-              <Button className="bg-orange-500 hover:bg-orange-600">
+              <Button onClick={handleAddExpense} className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
                 Registrar Despesa
               </Button>
             </div>
@@ -268,7 +342,7 @@ const Cards = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Cartões Cadastrados</CardTitle>
@@ -276,17 +350,18 @@ const Cards = () => {
           <CardContent>
             <div className="space-y-3">
               {mockCards.map((card) => (
-                <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
                   <div className="flex items-center gap-3">
-                    <CreditCard className="h-8 w-8 text-blue-600" />
-                    <div>
-                      <p className="font-medium">{card.name}</p>
-                      <p className="text-sm text-gray-600">
+                    <CreditCard className="h-8 w-8 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{card.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         Venc: {card.dueDate} | Fech: {card.closingDate}
                       </p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-1" />
                     Editar
                   </Button>
                 </div>
@@ -301,21 +376,21 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockExpenses.map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{expense.description}</p>
-                    <p className="text-sm text-gray-600">
-                      {mockCards.find(c => c.id === expense.cardId)?.name} • {expense.purchaseDate}
+              {mockExpenses.slice(0, 5).map((expense) => (
+                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{expense.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      {mockCards.find(c => c.id === expense.cardId)?.name} • {formatters.date(expense.purchaseDate)}
                     </p>
-                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mt-1">
+                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
                       Fatura: {expense.billingMonth}
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">R$ {expense.amount.toFixed(2)}</p>
+                    <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
                     {expense.isInstallment && (
-                      <p className="text-xs text-gray-600">{expense.installments}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{expense.installments}</p>
                     )}
                   </div>
                 </div>
