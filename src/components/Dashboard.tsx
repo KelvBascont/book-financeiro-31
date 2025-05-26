@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, CreditCard, Target, Car, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, CreditCard, Target, Car, DollarSign, BarChart } from 'lucide-react';
 
 const Dashboard = () => {
   const mockData = {
@@ -81,7 +81,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
+              <BarChart className="h-5 w-5 text-blue-600" />
               Gastos por Categoria
             </CardTitle>
           </CardHeader>
