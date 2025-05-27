@@ -24,7 +24,7 @@ const Navigation = ({ activeTab, onTabChange, isVisible = true }: NavigationProp
   }
 
   return (
-    <nav className="bg-gradient-to-b from-blue-900 to-blue-800 text-white p-6">
+    <nav className="bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-900 dark:to-gray-800 text-white p-6">
       <div className="space-y-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -35,8 +35,8 @@ const Navigation = ({ activeTab, onTabChange, isVisible = true }: NavigationProp
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
                 activeTab === tab.id
-                  ? 'bg-white text-blue-900 shadow-lg'
-                  : 'hover:bg-blue-700 text-blue-100'
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'hover:bg-gray-600 dark:hover:bg-gray-700 text-gray-100'
               )}
             >
               <Icon className="h-5 w-5" />
