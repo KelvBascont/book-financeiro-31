@@ -68,7 +68,14 @@ export const useSupabaseData = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setIncomes(data || []);
+      
+      // Type cast to ensure correct type
+      const typedIncomes = (data || []).map(income => ({
+        ...income,
+        type: income.type as 'salary' | 'bonus' | 'investment' | 'other'
+      }));
+      
+      setIncomes(typedIncomes);
     } catch (error) {
       console.error('Error fetching incomes:', error);
       toast({
@@ -122,13 +129,19 @@ export const useSupabaseData = () => {
 
       if (error) throw error;
       
-      setIncomes(prev => [data, ...prev]);
+      // Type cast the returned data
+      const typedIncome: Income = {
+        ...data,
+        type: data.type as 'salary' | 'bonus' | 'investment' | 'other'
+      };
+      
+      setIncomes(prev => [typedIncome, ...prev]);
       toast({
         title: "Sucesso",
         description: "Receita adicionada com sucesso"
       });
       
-      return data;
+      return typedIncome;
     } catch (error) {
       console.error('Error adding income:', error);
       toast({
