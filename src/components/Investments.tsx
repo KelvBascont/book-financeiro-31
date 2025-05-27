@@ -1,18 +1,16 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, TrendingUp, TrendingDown, DollarSign, RefreshCw, Activity } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useUser } from '@/hooks/use-user';
+import { Button, Input, Label } from '@/components/ui';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, TrendingUp, TrendingDown, DollarSign, RefreshCw, Activity } from 'lucide-react';
 import { useStockQuote, useSelicRate, useMultipleStockQuotes } from '@/hooks/useMarketData';
 import { useFormatters } from '@/hooks/useFormatters';
 
 const Investments = () => {
   const { toast } = useToast();
+  const { user } = useUser();
   const formatters = useFormatters();
   const [showAddInvestment, setShowAddInvestment] = useState(false);
   
@@ -22,36 +20,20 @@ const Investments = () => {
     quantity: '',
   });
 
-  // Mock data - em produção, isso viria do Supabase
-  const mockInvestments = [
-    {
-      id: '1',
-      ticker: 'MXRF11',
-      averagePrice: 10.50,
-      quantity: 100,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      ticker: 'PETR4',
-      averagePrice: 32.45,
-      quantity: 200,
-      createdAt: '2024-03-10'
-    },
-    {
-      id: '3',
-      ticker: 'ITUB4',
-      averagePrice: 28.90,
-      quantity: 150,
-      createdAt: '2024-04-05'
-    }
-  ];
+  const [investments, setInvestments] = useState<any[]>([]);
 
-  const tickers = mockInvestments.map(inv => inv.ticker);
-  const { data: stockQuotes, isLoading: quotesLoading, refetch: refetchQuotes } = useMultipleStockQuotes(tickers);
-  const { data: selicData, isLoading: selicLoading } = useSelicRate();
+  const fetchInvestments = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('investments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) toast({ title: "Erro", description: "Erro ao carregar investimentos", variant: "destructive" });
+    else setInvestments(data || []);
+  };
 
-  const handleAddInvestment = () => {
+  const handleAddInvestment = async () => {
     if (!investmentForm.ticker || !investmentForm.averagePrice || !investmentForm.quantity) {
       toast({
         title: "Erro",
@@ -61,14 +43,40 @@ const Investments = () => {
       return;
     }
     
-    toast({
-      title: "Investimento cadastrado!",
-      description: `${investmentForm.ticker} foi adicionado ao seu portfólio`,
-    });
-    
-    setInvestmentForm({ ticker: '', averagePrice: '', quantity: '' });
-    setShowAddInvestment(false);
+    const { error } = await supabase.from('investments').insert([{
+      name: investmentForm.ticker,
+      value: Number(investmentForm.averagePrice),
+      type: investmentForm.quantity,
+      user_id: user.id
+    }]);
+    if (error) toast({ title: "Erro", description: "Erro ao adicionar investimento", variant: "destructive" });
+    else {
+      toast({
+        title: "Investimento cadastrado!",
+        description: `${investmentForm.ticker} foi adicionado ao seu portfólio`,
+      });
+      
+      setInvestmentForm({ ticker: '', averagePrice: '', quantity: '' });
+      setShowAddInvestment(false);
+      fetchInvestments();
+    }
   };
+
+  const handleUpdateInvestment = async (id: string, updates: any) => {
+    const { error } = await supabase.from('investments').update(updates).eq('id', id);
+    if (error) toast({ title: "Erro", description: "Erro ao atualizar investimento", variant: "destructive" });
+    else fetchInvestments();
+  };
+
+  const handleDeleteInvestment = async (id: string) => {
+    const { error } = await supabase.from('investments').delete().eq('id', id);
+    if (error) toast({ title: "Erro", description: "Erro ao remover investimento", variant: "destructive" });
+    else fetchInvestments();
+  };
+
+  const tickers = investments.map(inv => inv.ticker);
+  const { data: stockQuotes, isLoading: quotesLoading, refetch: refetchQuotes } = useMultipleStockQuotes(tickers);
+  const { data: selicData, isLoading: selicLoading } = useSelicRate();
 
   const updatePrices = () => {
     refetchQuotes();
@@ -91,7 +99,7 @@ const Investments = () => {
     let totalInvested = 0;
     let totalCurrent = 0;
     
-    mockInvestments.forEach(investment => {
+    investments.forEach(investment => {
       const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
       if (quote) {
         const { invested, currentValue } = calculateGain(
@@ -111,6 +119,8 @@ const Investments = () => {
   };
 
   const portfolioSummary = getTotalPortfolio();
+
+  useEffect(() => { fetchInvestments(); }, [user]);
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -289,7 +299,7 @@ const Investments = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockInvestments.map((investment) => {
+            {investments.map((investment) => {
               const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
               
               if (quotesLoading) {
