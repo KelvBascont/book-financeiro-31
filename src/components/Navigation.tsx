@@ -1,20 +1,27 @@
 
-import { CreditCard, Target, Car, TrendingUp, BarChart3 } from 'lucide-react';
+import { CreditCard, Target, Car, TrendingUp, BarChart3, DollarSign, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isVisible?: boolean;
 }
 
-const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
+const Navigation = ({ activeTab, onTabChange, isVisible = true }: NavigationProps) => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'income', label: 'Receitas', icon: DollarSign },
+    { id: 'cash-expenses', label: 'Despesas à Vista', icon: Receipt },
     { id: 'cards', label: 'Cartões', icon: CreditCard },
     { id: 'savings', label: 'Reservas/Metas', icon: Target },
     { id: 'vehicles', label: 'Veículos', icon: Car },
     { id: 'investments', label: 'Investimentos', icon: TrendingUp },
   ];
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <nav className="bg-gradient-to-b from-blue-900 to-blue-800 text-white p-6">

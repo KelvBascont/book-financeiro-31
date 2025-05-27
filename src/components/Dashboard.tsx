@@ -1,14 +1,17 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, CreditCard, Target, Car, DollarSign, BarChart, Calendar } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSelicRate } from '@/hooks/useMarketData';
+import { useFinancial } from '@/contexts/FinancialContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const Dashboard = () => {
   const formatters = useFormatters();
   const { data: selicData, isLoading: selicLoading } = useSelicRate();
+  const { getTotalCashExpenses, getTotalIncomes, getBalance } = useFinancial();
 
   const mockData = {
     totalExpenses: 4250.80,
@@ -16,6 +19,54 @@ const Dashboard = () => {
     totalInvestments: 25000.00,
     vehiclePayments: 1200.00,
     monthlyGrowth: 5.2,
+  };
+
+  const totalCashExpenses = getTotalCashExpenses();
+  const totalIncomes = getTotalIncomes();
+  const balance = getBalance();
+
+  // Dados para o gráfico comparativo
+  const compareData = [
+    {
+      name: 'Receitas',
+      value: totalIncomes,
+      color: '#10b981'
+    },
+    {
+      name: 'Despesas Cartão',
+      value: mockData.totalExpenses,
+      color: '#ef4444'
+    },
+    {
+      name: 'Despesas à Vista',
+      value: totalCashExpenses,
+      color: '#f59e0b'
+    }
+  ];
+
+  const totalExpenses = mockData.totalExpenses + totalCashExpenses;
+  const finalBalance = totalIncomes - totalExpenses;
+
+  const balanceData = [
+    {
+      name: 'Receitas',
+      value: totalIncomes,
+    },
+    {
+      name: 'Despesas',
+      value: totalExpenses,
+    }
+  ];
+
+  const chartConfig = {
+    receitas: {
+      label: 'Receitas',
+      color: '#10b981',
+    },
+    despesas: {
+      label: 'Despesas',
+      color: '#ef4444',
+    },
   };
 
   const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "blue", isLoading = false }: any) => (
@@ -56,7 +107,52 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      {/* Indicadores de Saldo */}
+      <Card className={`border-l-4 ${finalBalance >= 0 ? 'border-green-500' : 'border-red-500'}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Resumo Financeiro do Mês</span>
+            <div className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {finalBalance >= 0 ? 'Sobra: ' : 'Falta: '}
+              {formatters.currency(Math.abs(finalBalance))}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-green-600 dark:text-green-400 font-semibold">Total Receitas</p>
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                {formatters.currency(totalIncomes)}
+              </p>
+            </div>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 font-semibold">Total Despesas</p>
+              <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+                {formatters.currency(totalExpenses)}
+              </p>
+            </div>
+            <div className={`p-4 ${finalBalance >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'} rounded-lg`}>
+              <p className={`font-semibold ${finalBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {finalBalance >= 0 ? 'Sobra' : 'Déficit'}
+              </p>
+              <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                {formatters.currency(Math.abs(finalBalance))}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
+        <StatCard
+          title="Receitas"
+          value={totalIncomes}
+          icon={DollarSign}
+          trend="up"
+          trendValue={5.2}
+          color="green"
+        />
         <StatCard
           title="Gastos em Cartões"
           value={mockData.totalExpenses}
@@ -66,12 +162,18 @@ const Dashboard = () => {
           color="red"
         />
         <StatCard
+          title="Despesas à Vista"
+          value={totalCashExpenses}
+          icon={BarChart}
+          color="orange"
+        />
+        <StatCard
           title="Total em Reservas"
           value={mockData.totalSavings}
           icon={Target}
           trend="up"
           trendValue={8.5}
-          color="green"
+          color="blue"
         />
         <StatCard
           title="Investimentos"
@@ -79,17 +181,88 @@ const Dashboard = () => {
           icon={TrendingUp}
           trend="up"
           trendValue={12.3}
-          color="blue"
-        />
-        <StatCard
-          title="Parcelas Veículos"
-          value={mockData.vehiclePayments}
-          icon={Car}
           color="purple"
         />
       </div>
 
-      {/* Taxa SELIC Card */}
+      {/* Gráfico Comparativo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart className="h-5 w-5 text-blue-600" />
+              Receitas vs Despesas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={balanceData}>
+                  <XAxis dataKey="name" />
+                  <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value) => formatters.currency(Number(value))}
+                    />} 
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    fill={(entry: any) => entry.name === 'Receitas' ? '#10b981' : '#ef4444'}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              Distribuição de Gastos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={compareData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {compareData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value) => formatters.currency(Number(value))}
+                    />} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            <div className="flex justify-center mt-4 space-x-4">
+              {compareData.map((entry, index) => (
+                <div key={index} className="flex items-center">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2" 
+                    style={{ backgroundColor: entry.color }}
+                  ></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -124,38 +297,6 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart className="h-5 w-5 text-blue-600" />
-              Gastos por Categoria
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-48 sm:h-64 flex items-center justify-center">
-            <div className="text-gray-500 dark:text-gray-400 text-center">
-              <BarChart className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Gráfico de pizza em desenvolvimento</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Evolução Patrimonial
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-48 sm:h-64 flex items-center justify-center">
-            <div className="text-gray-500 dark:text-gray-400 text-center">
-              <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Gráfico de linha em desenvolvimento</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card>
