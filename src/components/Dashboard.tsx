@@ -207,7 +207,7 @@ const Dashboard = () => {
                   />
                   <Bar 
                     dataKey="value" 
-                    fill={(entry: any) => entry.name === 'Receitas' ? '#10b981' : '#ef4444'}
+                    fill="#10b981"
                     radius={[4, 4, 0, 0]}
                   />
                 </RechartsBarChart>
