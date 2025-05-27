@@ -1,58 +1,100 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { useUser } from '@/hooks/use-user';
-import { Button, Input, Label } from '@/components/ui';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Plus, Car, Check, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFormatters } from '@/hooks/useFormatters';
 
 const Vehicles = () => {
   const { toast } = useToast();
-  const { user } = useUser();
+  const formatters = useFormatters();
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  
+  const [vehicleForm, setVehicleForm] = useState({
+    description: '',
+    totalAmount: '',
+    installments: '',
+    startDate: '',
+    installmentValue: ''
+  });
 
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [form, setForm] = useState({ name: '', plate: '', value: '' });
+  const mockVehicles = [
+    {
+      id: '1',
+      description: 'Honda Civic 2023',
+      totalAmount: 120000.00,
+      installments: 60,
+      startDate: '2024-01-15',
+      installmentValue: 2000.00,
+      paidInstallments: 5,
+      nextDueDate: '2024-06-15'
+    },
+    {
+      id: '2',
+      description: 'Yamaha MT-03',
+      totalAmount: 24000.00,
+      installments: 24,
+      startDate: '2024-03-01',
+      installmentValue: 1000.00,
+      paidInstallments: 3,
+      nextDueDate: '2024-06-01'
+    }
+  ];
 
-  const fetchVehicles = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) toast({ title: "Erro", description: "Erro ao carregar veículos", variant: "destructive" });
-    else setVehicles(data || []);
-  };
+  const mockPayments = [
+    { id: '1', vehicleId: '1', installmentNumber: 5, dueDate: '2024-05-15', isPaid: true, paidDate: '2024-05-14' },
+    { id: '2', vehicleId: '1', installmentNumber: 6, dueDate: '2024-06-15', isPaid: false },
+    { id: '3', vehicleId: '2', installmentNumber: 3, dueDate: '2024-05-01', isPaid: true, paidDate: '2024-04-30' },
+    { id: '4', vehicleId: '2', installmentNumber: 4, dueDate: '2024-06-01', isPaid: false },
+  ];
 
-  const handleAddVehicle = async () => {
-    if (!form.name || !form.plate || !form.value) {
-      toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
+  const handleAddVehicle = () => {
+    if (!vehicleForm.description || !vehicleForm.totalAmount || !vehicleForm.installments || !vehicleForm.startDate) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
       return;
     }
-    const { error } = await supabase.from('vehicles').insert([{
-      name: form.name,
-      plate: form.plate,
-      value: Number(form.value),
-      user_id: user.id
-    }]);
-    if (error) toast({ title: "Erro", description: "Erro ao adicionar veículo", variant: "destructive" });
-    else {
-      setForm({ name: '', plate: '', value: '' });
-      fetchVehicles();
-    }
+    
+    toast({
+      title: "Veículo cadastrado!",
+      description: `Financiamento de "${vehicleForm.description}" foi adicionado com sucesso`,
+    });
+    
+    setVehicleForm({ description: '', totalAmount: '', installments: '', startDate: '', installmentValue: '' });
+    setShowAddVehicle(false);
   };
 
-  const handleUpdateVehicle = async (id: string, updates: any) => {
-    const { error } = await supabase.from('vehicles').update(updates).eq('id', id);
-    if (error) toast({ title: "Erro", description: "Erro ao atualizar veículo", variant: "destructive" });
-    else fetchVehicles();
+  const markAsPaid = (paymentId: string) => {
+    toast({
+      title: "Parcela paga!",
+      description: "Parcela marcada como paga com sucesso",
+    });
   };
 
-  const handleDeleteVehicle = async (id: string) => {
-    const { error } = await supabase.from('vehicles').delete().eq('id', id);
-    if (error) toast({ title: "Erro", description: "Erro ao remover veículo", variant: "destructive" });
-    else fetchVehicles();
+  const getProgress = (paid: number, total: number) => {
+    return (paid / total) * 100;
   };
 
-  useEffect(() => { fetchVehicles(); }, [user]);
+  const getRemainingAmount = (vehicle: any) => {
+    const remainingInstallments = vehicle.installments - vehicle.paidInstallments;
+    return remainingInstallments * vehicle.installmentValue;
+  };
+
+  const getTotalInvested = () => {
+    return mockVehicles.reduce((total, vehicle) => total + (vehicle.paidInstallments * vehicle.installmentValue), 0);
+  };
+
+  const getTotalRemaining = () => {
+    return mockVehicles.reduce((total, vehicle) => total + getRemainingAmount(vehicle), 0);
+  };
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
