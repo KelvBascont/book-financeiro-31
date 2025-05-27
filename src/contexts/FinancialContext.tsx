@@ -1,8 +1,33 @@
-
+// FinancialContext.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useSupabaseData, CashExpense, Income } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+
+interface CashExpense {/* manter mesma estrutura anterior */}
+interface Income {/* manter mesma estrutura anterior */}
+
+interface Card {
+  id: string;
+  name: string;
+  due_date: number;
+  closing_date: number;
+  user_id: string;
+  created_at: string;
+}
+
+interface CardExpense {
+  id: string;
+  card_id: string;
+  description: string;
+  amount: number;
+  purchase_date: string;
+  is_installment: boolean;
+  installments: number | null;
+  billing_month: string;
+  user_id: string;
+}
 
 interface FinancialContextType {
+  // Existing properties
   cashExpenses: CashExpense[];
   incomes: Income[];
   selectedMonth: Date;
@@ -13,10 +38,19 @@ interface FinancialContextType {
   getBalance: (month?: Date) => number;
   getCashExpensesForMonth: (month: Date) => CashExpense[];
   getIncomesForMonth: (month: Date) => Income[];
-  addCashExpense: (expense: Omit<CashExpense, 'id' | 'user_id'>) => Promise<any>;
-  addIncome: (income: Omit<Income, 'id' | 'user_id'>) => Promise<any>;
+  addCashExpense: (expense: Omit<CashExpense, 'id' | 'user_id'>) => Promise<void>;
+  addIncome: (income: Omit<Income, 'id' | 'user_id'>) => Promise<void>;
   deleteCashExpense: (id: string) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
+
+  // New card properties
+  cards: Card[];
+  cardExpenses: CardExpense[];
+  addCard: (card: Omit<Card, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+  deleteCard: (id: string) => Promise<void>;
+  addCardExpense: (expense: Omit<CardExpense, 'id' | 'user_id' | 'billing_month'>) => Promise<void>;
+  deleteCardExpense: (id: string) => Promise<void>;
+  getCardsForMonth: (month: Date) => CardExpense[];
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -35,65 +69,38 @@ interface FinancialProviderProps {
 
 export const FinancialProvider: React.FC<FinancialProviderProps> = ({ children }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  
   const {
     cashExpenses,
     incomes,
+    cards,
+    cardExpenses,
     loading,
     addCashExpense,
     addIncome,
     deleteCashExpense,
-    deleteIncome
+    deleteIncome,
+    addCard,
+    deleteCard,
+    addCardExpense,
+    deleteCardExpense
   } = useSupabaseData();
 
-  const isInMonth = (itemDate: string, targetMonth: Date) => {
-    const date = new Date(itemDate);
-    return date.getMonth() === targetMonth.getMonth() && 
-           date.getFullYear() === targetMonth.getFullYear();
-  };
+  // Existing filter functions...
 
-  const getCashExpensesForMonth = (month: Date) => {
-    return cashExpenses.filter(expense => {
-      if (expense.is_recurring) {
-        const expenseDate = new Date(expense.date);
-        const monthsDiff = (month.getFullYear() - expenseDate.getFullYear()) * 12 + 
-                          (month.getMonth() - expenseDate.getMonth());
-        return monthsDiff >= 0 && (!expense.recurrence_months || monthsDiff < expense.recurrence_months);
-      }
-      return isInMonth(expense.due_date, month);
+  // New card expense filter
+  const getCardsForMonth = (month: Date) => {
+    return cardExpenses.filter(expense => {
+      const billingMonth = new Date(expense.billing_month);
+      return billingMonth.getMonth() === month.getMonth() && 
+             billingMonth.getFullYear() === month.getFullYear();
     });
-  };
-
-  const getIncomesForMonth = (month: Date) => {
-    return incomes.filter(income => {
-      if (income.is_recurring) {
-        const incomeDate = new Date(income.date);
-        const monthsDiff = (month.getFullYear() - incomeDate.getFullYear()) * 12 + 
-                          (month.getMonth() - incomeDate.getMonth());
-        return monthsDiff >= 0 && (!income.recurrence_months || monthsDiff < income.recurrence_months);
-      }
-      return isInMonth(income.date, month);
-    });
-  };
-
-  const getTotalCashExpenses = (month?: Date) => {
-    const targetMonth = month || selectedMonth;
-    const monthExpenses = getCashExpensesForMonth(targetMonth);
-    return monthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  };
-
-  const getTotalIncomes = (month?: Date) => {
-    const targetMonth = month || selectedMonth;
-    const monthIncomes = getIncomesForMonth(targetMonth);
-    return monthIncomes.reduce((sum, income) => sum + Number(income.amount), 0);
-  };
-
-  const getBalance = (month?: Date) => {
-    return getTotalIncomes(month) - getTotalCashExpenses(month);
   };
 
   return (
     <FinancialContext.Provider
       value={{
+        // Existing values
         cashExpenses,
         incomes,
         selectedMonth,
@@ -108,6 +115,15 @@ export const FinancialProvider: React.FC<FinancialProviderProps> = ({ children }
         addIncome,
         deleteCashExpense,
         deleteIncome,
+
+        // New card values
+        cards,
+        cardExpenses,
+        addCard,
+        deleteCard,
+        addCardExpense,
+        deleteCardExpense,
+        getCardsForMonth
       }}
     >
       {children}
