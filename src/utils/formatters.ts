@@ -1,32 +1,61 @@
 
-export const formatCurrency = (value: number, currency = 'BRL') => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
+export const formatters = {
+  currency: (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  },
 
-export const formatPercent = (value: number, decimals = 2) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'percent',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value / 100);
-};
+  currencyCompact: (value: number): string => {
+    if (value >= 1000000) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        notation: 'compact',
+        maximumFractionDigits: 1
+      }).format(value);
+    }
+    return formatters.currency(value);
+  },
 
-export const formatDate = (date: string | Date) => {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(date));
-};
+  percentage: (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(value / 100);
+  },
 
-export const formatNumber = (value: number, decimals = 0) => {
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value);
+  date: (dateString: string | Date): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  },
+
+  dateTime: (dateString: string | Date): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return new Intl.DateTimeFormat('pt-BR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  },
+
+  dateShort: (dateString: string | Date): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return new Intl.DateTimeFormat('pt-BR', {
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  },
+
+  dateMonthYear: (dateString: string | Date): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return new Intl.DateTimeFormat('pt-BR', {
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  }
 };

@@ -1,13 +1,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useFinancial } from '@/contexts/FinancialContext';
-import { FileSpreadsheet } from 'lucide-react';
+import { usePrint } from '@/hooks/usePrint';
+import { FileSpreadsheet, Printer } from 'lucide-react';
 
 const FinancialSpreadsheet = () => {
   const formatters = useFormatters();
-  const { getTotalCashExpenses, getTotalIncomes, getBalance } = useFinancial();
+  const { getTotalCashExpenses, getTotalIncomes } = useFinancial();
+  const { printSpreadsheet } = usePrint();
 
   const generateMonthsData = () => {
     const months = [];
@@ -18,8 +21,8 @@ const FinancialSpreadsheet = () => {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
       const totalIncomes = getTotalIncomes(date);
       const totalCashExpenses = getTotalCashExpenses(date);
-      const mockCardExpenses = 2500 + (Math.random() * 1000); // Mock data para cartões
-      const mockFixedExpenses = 1200; // Mock data para despesas fixas
+      const mockCardExpenses = 2500 + (Math.random() * 1000);
+      const mockFixedExpenses = 1200;
       const totalExpenses = totalCashExpenses + mockCardExpenses + mockFixedExpenses;
       const balance = totalIncomes - totalExpenses;
       const percentageLeft = totalIncomes > 0 ? (balance / totalIncomes) * 100 : 0;
@@ -50,6 +53,13 @@ const FinancialSpreadsheet = () => {
             Visão detalhada de receitas e despesas por mês
           </p>
         </div>
+        <Button 
+          onClick={printSpreadsheet}
+          className="bg-blue-500 hover:bg-blue-600"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Imprimir Planilha
+        </Button>
       </div>
 
       <Card>

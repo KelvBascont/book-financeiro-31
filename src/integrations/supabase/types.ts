@@ -9,7 +9,354 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      card_expenses: {
+        Row: {
+          amount: number
+          billing_month: string
+          card_id: string
+          created_at: string | null
+          current_installment: number | null
+          description: string
+          id: string
+          installments: number | null
+          is_installment: boolean | null
+          purchase_date: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          billing_month: string
+          card_id: string
+          created_at?: string | null
+          current_installment?: number | null
+          description: string
+          id?: string
+          installments?: number | null
+          is_installment?: boolean | null
+          purchase_date: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_month?: string
+          card_id?: string
+          created_at?: string | null
+          current_installment?: number | null
+          description?: string
+          id?: string
+          installments?: number | null
+          is_installment?: boolean | null
+          purchase_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_expenses_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cards: {
+        Row: {
+          closing_date: number
+          created_at: string | null
+          due_date: number
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          closing_date: number
+          created_at?: string | null
+          due_date: number
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          closing_date?: number
+          created_at?: string | null
+          due_date?: number
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_expenses: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string
+          description: string
+          due_date: string
+          id: string
+          is_recurring: boolean | null
+          recurrence_months: number | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date: string
+          description: string
+          due_date: string
+          id?: string
+          is_recurring?: boolean | null
+          recurrence_months?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string
+          description?: string
+          due_date?: string
+          id?: string
+          is_recurring?: boolean | null
+          recurrence_months?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      incomes: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string
+          description: string
+          id: string
+          is_recurring: boolean | null
+          recurrence_months: number | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date: string
+          description: string
+          id?: string
+          is_recurring?: boolean | null
+          recurrence_months?: number | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string
+          description?: string
+          id?: string
+          is_recurring?: boolean | null
+          recurrence_months?: number | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      investments: {
+        Row: {
+          average_price: number
+          created_at: string | null
+          current_price: number | null
+          id: string
+          quantity: number
+          ticker: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_price: number
+          created_at?: string | null
+          current_price?: number | null
+          id?: string
+          quantity: number
+          ticker: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_price?: number
+          created_at?: string | null
+          current_price?: number | null
+          id?: string
+          quantity?: number
+          ticker?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      savings_goals: {
+        Row: {
+          created_at: string | null
+          current_amount: number | null
+          id: string
+          initial_amount: number | null
+          name: string
+          target_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          initial_amount?: number | null
+          name: string
+          target_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          initial_amount?: number | null
+          name?: string
+          target_amount?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      savings_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string
+          description: string | null
+          goal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date: string
+          description?: string | null
+          goal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          goal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_transactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_payments: {
+        Row: {
+          created_at: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          is_paid: boolean | null
+          paid_date: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          is_paid?: boolean | null
+          paid_date?: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          is_paid?: boolean | null
+          paid_date?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_payments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          installment_value: number
+          installments: number
+          start_date: string
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          installment_value: number
+          installments: number
+          start_date: string
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          installment_value?: number
+          installments?: number
+          start_date?: string
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

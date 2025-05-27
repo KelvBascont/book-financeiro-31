@@ -8,23 +8,39 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { Plus, Receipt, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFinancial } from '@/contexts/FinancialContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CashExpenses = () => {
   const formatters = useFormatters();
   const { toast } = useToast();
-  const { cashExpenses, setCashExpenses, selectedMonth, getCashExpensesForMonth } = useFinancial();
+  const { user } = useAuth();
+  const { 
+    selectedMonth, 
+    getCashExpensesForMonth, 
+    addCashExpense, 
+    deleteCashExpense,
+    loading
+  } = useFinancial();
   
   const [newExpense, setNewExpense] = useState({
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    dueDate: new Date().toISOString().split('T')[0],
-    isRecurring: false,
-    recurrenceMonths: '1'
+    due_date: new Date().toISOString().split('T')[0],
+    is_recurring: false,
+    recurrence_months: '1'
   });
 
-  const handleAddExpense = () => {
-    if (!newExpense.description || !newExpense.amount || !newExpense.dueDate) {
+  if (!user) {
+    return (
+      <div className="p-6 text-center">
+        <p>Por favor, faça login para gerenciar suas despesas.</p>
+      </div>
+    );
+  }
+
+  const handleAddExpense = async () => {
+    if (!newExpense.description || !newExpense.amount || !newExpense.due_date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -33,42 +49,38 @@ const CashExpenses = () => {
       return;
     }
 
-    const expense = {
-      id: Date.now().toString(),
+    await addCashExpense({
       description: newExpense.description,
       amount: parseFloat(newExpense.amount),
       date: newExpense.date,
-      dueDate: newExpense.dueDate,
-      isRecurring: newExpense.isRecurring,
-      recurrenceMonths: newExpense.isRecurring ? parseInt(newExpense.recurrenceMonths) : undefined
-    };
+      due_date: newExpense.due_date,
+      is_recurring: newExpense.is_recurring,
+      recurrence_months: newExpense.is_recurring ? parseInt(newExpense.recurrence_months) : undefined
+    });
 
-    setCashExpenses([...cashExpenses, expense]);
     setNewExpense({ 
       description: '', 
       amount: '', 
       date: new Date().toISOString().split('T')[0],
-      dueDate: new Date().toISOString().split('T')[0],
-      isRecurring: false,
-      recurrenceMonths: '1'
-    });
-    
-    toast({
-      title: "Sucesso",
-      description: `Despesa adicionada${newExpense.isRecurring ? ` com recorrência de ${newExpense.recurrenceMonths} meses` : ''}`
-    });
-  };
-
-  const handleRemoveExpense = (id: string) => {
-    setCashExpenses(cashExpenses.filter(expense => expense.id !== id));
-    toast({
-      title: "Removido",
-      description: "Despesa removida com sucesso"
+      due_date: new Date().toISOString().split('T')[0],
+      is_recurring: false,
+      recurrence_months: '1'
     });
   };
 
   const monthExpenses = getCashExpensesForMonth(selectedMonth);
-  const totalExpenses = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 sm:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -114,8 +126,8 @@ const CashExpenses = () => {
               <label className="text-sm text-gray-600 dark:text-gray-300">Data de Vencimento</label>
               <Input
                 type="date"
-                value={newExpense.dueDate}
-                onChange={(e) => setNewExpense({...newExpense, dueDate: e.target.value})}
+                value={newExpense.due_date}
+                onChange={(e) => setNewExpense({...newExpense, due_date: e.target.value})}
               />
             </div>
           </div>
@@ -124,13 +136,13 @@ const CashExpenses = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="recurring"
-                checked={newExpense.isRecurring}
-                onCheckedChange={(checked) => setNewExpense({...newExpense, isRecurring: !!checked})}
+                checked={newExpense.is_recurring}
+                onCheckedChange={(checked) => setNewExpense({...newExpense, is_recurring: !!checked})}
               />
               <label htmlFor="recurring" className="text-sm">Despesa recorrente?</label>
             </div>
             
-            {newExpense.isRecurring && (
+            {newExpense.is_recurring && (
               <div className="flex items-center space-x-2">
                 <label className="text-sm">Por quantos meses:</label>
                 <Input
@@ -138,8 +150,8 @@ const CashExpenses = () => {
                   min="1"
                   max="24"
                   className="w-20"
-                  value={newExpense.recurrenceMonths}
-                  onChange={(e) => setNewExpense({...newExpense, recurrenceMonths: e.target.value})}
+                  value={newExpense.recurrence_months}
+                  onChange={(e) => setNewExpense({...newExpense, recurrence_months: e.target.value})}
                 />
               </div>
             )}
@@ -171,8 +183,8 @@ const CashExpenses = () => {
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 dark:text-white">{expense.description}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Vencimento: {formatters.date(expense.dueDate)}
-                    {expense.isRecurring && (
+                    Vencimento: {formatters.date(expense.due_date)}
+                    {expense.is_recurring && (
                       <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">
                         Recorrente
                       </span>
@@ -181,12 +193,12 @@ const CashExpenses = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-red-600">
-                    {formatters.currency(expense.amount)}
+                    {formatters.currency(Number(expense.amount))}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleRemoveExpense(expense.id)}
+                    onClick={() => deleteCashExpense(expense.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
