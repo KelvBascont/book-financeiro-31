@@ -1,5 +1,6 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient'; // ajuste o path conforme seu projeto
+import { useUser } from '@/hooks/use-user'; // ajuste o path conforme seu projeto
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 
 const Savings = () => {
   const { toast } = useToast();
+  const { user } = useUser(); // para pegar o usuário logado
+
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
-  
+
   const [goalForm, setGoalForm] = useState({
     name: '',
     initialAmount: '',
@@ -26,40 +29,53 @@ const Savings = () => {
     description: ''
   });
 
-  const mockGoals = [
-    {
-      id: '1',
-      name: 'Reserva de Emergência',
-      currentAmount: 7500.00,
-      targetAmount: 10000.00,
-      createdAt: '2024-01-15',
-      lastUpdate: '2024-05-25'
-    },
-    {
-      id: '2',
-      name: 'Viagem para Europa',
-      currentAmount: 4500.00,
-      targetAmount: 15000.00,
-      createdAt: '2024-02-01',
-      lastUpdate: '2024-05-20'
-    },
-    {
-      id: '3',
-      name: 'Carro Novo',
-      currentAmount: 12000.00,
-      targetAmount: 40000.00,
-      createdAt: '2024-03-10',
-      lastUpdate: '2024-05-22'
+  // Estados para dados vindos do Supabase
+  const [goals, setGoals] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Buscar metas do Supabase
+  const fetchGoals = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('savings_goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      toast({ title: "Erro", description: "Erro ao carregar metas", variant: "destructive" });
+    } else {
+      setGoals(data || []);
     }
-  ];
+    setLoading(false);
+  };
 
-  const mockTransactions = [
-    { id: '1', goalId: '1', amount: 500.00, date: '2024-05-25', description: 'Depósito mensal' },
-    { id: '2', goalId: '2', amount: 300.00, date: '2024-05-20', description: 'Extra freelance' },
-    { id: '3', goalId: '1', amount: 1000.00, date: '2024-05-15', description: 'Bonus trabalho' },
-  ];
+  // Buscar transações do Supabase
+  const fetchTransactions = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('savings_transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+    if (error) {
+      toast({ title: "Erro", description: "Erro ao carregar movimentações", variant: "destructive" });
+    } else {
+      setTransactions(data || []);
+    }
+  };
 
-  const handleAddGoal = () => {
+  useEffect(() => {
+    if (user) {
+      fetchGoals();
+      fetchTransactions();
+    }
+    // eslint-disable-next-line
+  }, [user]);
+
+  // Adicionar meta no Supabase
+  const handleAddGoal = async () => {
     if (!goalForm.name || !goalForm.initialAmount) {
       toast({
         title: "Erro",
@@ -68,17 +84,32 @@ const Savings = () => {
       });
       return;
     }
-    
-    toast({
-      title: "Meta criada!",
-      description: `Meta "${goalForm.name}" foi criada com sucesso`,
-    });
-    
-    setGoalForm({ name: '', initialAmount: '', targetAmount: '' });
-    setShowAddGoal(false);
+    try {
+      const { data, error } = await supabase
+        .from('savings_goals')
+        .insert([{
+          name: goalForm.name,
+          current_amount: Number(goalForm.initialAmount),
+          target_amount: goalForm.targetAmount ? Number(goalForm.targetAmount) : null,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      toast({
+        title: "Meta criada!",
+        description: `Meta "${goalForm.name}" foi criada com sucesso`,
+      });
+      setGoalForm({ name: '', initialAmount: '', targetAmount: '' });
+      setShowAddGoal(false);
+      fetchGoals();
+    } catch (error) {
+      toast({ title: "Erro", description: "Erro ao criar meta", variant: "destructive" });
+    }
   };
 
-  const handleAddTransaction = () => {
+  // Adicionar transação no Supabase
+  const handleAddTransaction = async () => {
     if (!transactionForm.goalId || !transactionForm.amount || !transactionForm.date) {
       toast({
         title: "Erro",
@@ -87,14 +118,37 @@ const Savings = () => {
       });
       return;
     }
-    
-    toast({
-      title: "Rendimento adicionado!",
-      description: `R$ ${transactionForm.amount} foi adicionado à sua meta`,
-    });
-    
-    setTransactionForm({ goalId: '', amount: '', date: '', description: '' });
-    setShowAddTransaction(false);
+    try {
+      const { data, error } = await supabase
+        .from('savings_transactions')
+        .insert([{
+          goal_id: transactionForm.goalId,
+          amount: Number(transactionForm.amount),
+          date: transactionForm.date,
+          description: transactionForm.description,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Atualiza o valor atual da meta
+      await supabase.rpc('increment_savings_goal', {
+        goal_id_input: transactionForm.goalId,
+        amount_input: Number(transactionForm.amount)
+      });
+
+      toast({
+        title: "Rendimento adicionado!",
+        description: `R$ ${transactionForm.amount} foi adicionado à sua meta`,
+      });
+      setTransactionForm({ goalId: '', amount: '', date: '', description: '' });
+      setShowAddTransaction(false);
+      fetchGoals();
+      fetchTransactions();
+    } catch (error) {
+      toast({ title: "Erro", description: "Erro ao adicionar rendimento", variant: "destructive" });
+    }
   };
 
   const getProgress = (current: number, target: number) => {
@@ -200,7 +254,7 @@ const Savings = () => {
                   onChange={(e) => setTransactionForm({ ...transactionForm, goalId: e.target.value })}
                 >
                   <option value="">Selecione a meta</option>
-                  {mockGoals.map((goal) => (
+                  {goals.map((goal) => (
                     <option key={goal.id} value={goal.id}>
                       {goal.name}
                     </option>
@@ -250,10 +304,10 @@ const Savings = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {mockGoals.map((goal) => {
-          const progress = getProgress(goal.currentAmount, goal.targetAmount);
+        {goals.map((goal) => {
+          const progress = getProgress(goal.current_amount, goal.target_amount);
           const progressColor = getProgressColor(progress);
-          
+
           return (
             <Card key={goal.id} className="relative overflow-hidden">
               <CardHeader>
@@ -265,16 +319,16 @@ const Savings = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-gray-900">
-                    R$ {goal.currentAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {goal.current_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
-                  {goal.targetAmount > 0 && (
+                  {goal.target_amount > 0 && (
                     <div className="text-sm text-gray-600">
-                      de R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      de R$ {goal.target_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   )}
                 </div>
-                
-                {goal.targetAmount > 0 && (
+
+                {goal.target_amount > 0 && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Progresso</span>
@@ -283,18 +337,18 @@ const Savings = () => {
                     <Progress value={progress} className="h-2" />
                   </div>
                 )}
-                
+
                 <div className="space-y-2 text-xs text-gray-600">
                   <div className="flex justify-between">
                     <span>Criado em:</span>
-                    <span>{new Date(goal.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span>{new Date(goal.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Última atualização:</span>
-                    <span>{new Date(goal.lastUpdate).toLocaleDateString('pt-BR')}</span>
+                    <span>{new Date(goal.updated_at || goal.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
                 </div>
-                
+
                 <Button variant="outline" className="w-full">
                   Ver Histórico
                 </Button>
@@ -310,8 +364,8 @@ const Savings = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {mockTransactions.map((transaction) => {
-              const goal = mockGoals.find(g => g.id === transaction.goalId);
+            {transactions.map((transaction) => {
+              const goal = goals.find(g => g.id === transaction.goal_id);
               return (
                 <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
@@ -327,7 +381,7 @@ const Savings = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-green-600">
-                      +R$ {transaction.amount.toFixed(2)}
+                      +R$ {Number(transaction.amount).toFixed(2)}
                     </p>
                   </div>
                 </div>
