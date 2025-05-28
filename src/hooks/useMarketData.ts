@@ -1,46 +1,101 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+const BRAPI_TOKEN = 'sgJcY993z7C8YKSiehjj8g';
+const BRAPI_BASE_URL = 'https://brapi.dev/api';
+
 interface StockQuote {
   symbol: string;
   shortName: string;
+  longName: string;
+  currency: string;
   regularMarketPrice: number;
+  regularMarketDayHigh: number;
+  regularMarketDayLow: number;
+  regularMarketDayRange: string;
   regularMarketChange: number;
   regularMarketChangePercent: number;
-  currency: string;
+  regularMarketTime: string;
+  marketCap: number;
+  regularMarketVolume: number;
+  regularMarketPreviousClose: number;
+  regularMarketOpen: number;
+  averageDailyVolume10Day: number;
+  averageDailyVolume3Month: number;
+  fiftyTwoWeekLow: number;
+  fiftyTwoWeekHigh: number;
+  priceEarnings: number;
+  earningsPerShare: number;
+  logourl: string;
 }
 
-interface SelicRate {
-  value: number;
-  date: string;
+interface BrapiResponse {
+  results: StockQuote[];
+  requestedAt: string;
+  took: string;
 }
 
-const BRAPI_TOKEN = 'sgJcY993z7C8YKSiehjj8g';
+interface SelicResponse {
+  prime_rate: Array<{
+    value: number;
+    date: string;
+  }>;
+}
 
 export const useStockQuote = (ticker: string) => {
   return useQuery({
     queryKey: ['stock-quote', ticker],
-    queryFn: async () => {
+    queryFn: async (): Promise<StockQuote | null> => {
       if (!ticker) return null;
       
-      console.log(`Buscando cotação para: ${ticker}`);
+      console.log(`Buscando cotação para ${ticker}...`);
       
       const response = await fetch(
-        `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`
+        `${BRAPI_BASE_URL}/quote/${ticker}?token=${BRAPI_TOKEN}`
       );
       
       if (!response.ok) {
-        throw new Error('Erro ao buscar cotação');
+        throw new Error(`Erro ao buscar cotação: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const data: BrapiResponse = await response.json();
       console.log(`Cotação recebida para ${ticker}:`, data);
       
-      return data.results?.[0] as StockQuote;
+      return data.results?.[0] || null;
     },
     enabled: !!ticker,
-    refetchInterval: 30000, // Atualiza a cada 30 segundos
-    staleTime: 20000, // Considera dados obsoletos após 20 segundos
+    staleTime: 60000, // 1 minuto
+    refetchInterval: 30000, // 30 segundos
+  });
+};
+
+export const useMultipleStockQuotes = (tickers: string[]) => {
+  return useQuery({
+    queryKey: ['multiple-stock-quotes', tickers],
+    queryFn: async (): Promise<StockQuote[]> => {
+      if (!tickers || tickers.length === 0) return [];
+      
+      const uniqueTickers = [...new Set(tickers.filter(Boolean))];
+      const tickerString = uniqueTickers.join(',');
+      
+      console.log(`Buscando cotações múltiplas para: ${tickerString}`);
+      
+      const response = await fetch(
+        `${BRAPI_BASE_URL}/quote/${tickerString}?token=${BRAPI_TOKEN}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar cotações: ${response.statusText}`);
+      }
+      
+      const data: BrapiResponse = await response.json();
+      console.log('Cotações múltiplas recebidas:', data);
+      
+      return data.results || [];
+    },
+    enabled: tickers && tickers.length > 0,
+    staleTime: 60000, // 1 minuto
+    refetchInterval: 30000, // 30 segundos
   });
 };
 
@@ -51,47 +106,22 @@ export const useSelicRate = () => {
       console.log('Buscando taxa SELIC...');
       
       const response = await fetch(
-        `https://brapi.dev/api/v2/prime-rate?country=brazil`
+        `${BRAPI_BASE_URL}/v2/prime-rate?country=brazil&token=${BRAPI_TOKEN}`
       );
       
       if (!response.ok) {
         throw new Error('Erro ao buscar taxa SELIC');
       }
       
-      const data = await response.json();
+      const data: SelicResponse = await response.json();
       console.log('Taxa SELIC recebida:', data);
       
-      return data.prime_rate?.[0] as SelicRate;
+      return {
+        value: data.prime_rate?.[0]?.value || 0,
+        date: data.prime_rate?.[0]?.date || new Date().toISOString()
+      };
     },
-    refetchInterval: 300000, // Atualiza a cada 5 minutos
-    staleTime: 240000, // Considera dados obsoletos após 4 minutos
-  });
-};
-
-export const useMultipleStockQuotes = (tickers: string[]) => {
-  return useQuery({
-    queryKey: ['multiple-stock-quotes', tickers],
-    queryFn: async () => {
-      if (!tickers.length) return [];
-      
-      const tickerString = tickers.join(',');
-      console.log(`Buscando cotações para: ${tickerString}`);
-      
-      const response = await fetch(
-        `https://brapi.dev/api/quote/${tickerString}?token=${BRAPI_TOKEN}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar cotações');
-      }
-      
-      const data = await response.json();
-      console.log('Cotações recebidas:', data);
-      
-      return data.results as StockQuote[];
-    },
-    enabled: tickers.length > 0,
-    refetchInterval: 30000,
-    staleTime: 20000,
+    staleTime: 3600000, // 1 hora
+    refetchInterval: 3600000, // 1 hora
   });
 };

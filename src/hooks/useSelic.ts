@@ -17,7 +17,7 @@ export const useSelic = (autoUpdate: boolean = true, interval: number = 300000) 
       console.log('Buscando taxa SELIC automática...');
       
       const response = await fetch(
-        'https://brapi.dev/api/v2/prime-rate?country=brazil'
+        'https://brapi.dev/api/v2/prime-rate?country=brazil&token=sgJcY993z7C8YKSiehjj8g'
       );
       
       if (!response.ok) {
@@ -35,8 +35,8 @@ export const useSelic = (autoUpdate: boolean = true, interval: number = 300000) 
       
       return selicData;
     },
-    refetchInterval: autoUpdate ? interval : false, // 5 minutos
-    staleTime: 240000, // 4 minutos
+    refetchInterval: autoUpdate ? interval : false,
+    staleTime: 240000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
   });
@@ -47,7 +47,6 @@ export const useSelic = (autoUpdate: boolean = true, interval: number = 300000) 
     }
   }, [data]);
 
-  // Função para forçar atualização manual
   const forceUpdate = async () => {
     try {
       const result = await refetch();
@@ -58,7 +57,6 @@ export const useSelic = (autoUpdate: boolean = true, interval: number = 300000) 
     }
   };
 
-  // Verificar se dados estão desatualizados (mais de 1 dia)
   const isStale = selic ? 
     (new Date().getTime() - new Date(selic.lastUpdate).getTime()) > 86400000 : 
     false;

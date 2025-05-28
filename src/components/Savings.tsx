@@ -7,60 +7,40 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Target, TrendingUp, PiggyBank } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseTables } from '@/hooks/useSupabaseTables';
+import { useFormatters } from '@/hooks/useFormatters';
+import CrudActions from '@/components/CrudActions';
 
 const Savings = () => {
   const { toast } = useToast();
+  const formatters = useFormatters();
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   
+  const {
+    savingsGoals,
+    savingsTransactions,
+    addSavingsGoal,
+    deleteSavingsGoal,
+    addSavingsTransaction,
+    loading
+  } = useSupabaseTables();
+  
   const [goalForm, setGoalForm] = useState({
     name: '',
-    initialAmount: '',
-    targetAmount: ''
+    initial_amount: '',
+    target_amount: ''
   });
 
   const [transactionForm, setTransactionForm] = useState({
-    goalId: '',
+    goal_id: '',
     amount: '',
     date: '',
     description: ''
   });
 
-  const mockGoals = [
-    {
-      id: '1',
-      name: 'Reserva de Emergência',
-      currentAmount: 7500.00,
-      targetAmount: 10000.00,
-      createdAt: '2024-01-15',
-      lastUpdate: '2024-05-25'
-    },
-    {
-      id: '2',
-      name: 'Viagem para Europa',
-      currentAmount: 4500.00,
-      targetAmount: 15000.00,
-      createdAt: '2024-02-01',
-      lastUpdate: '2024-05-20'
-    },
-    {
-      id: '3',
-      name: 'Carro Novo',
-      currentAmount: 12000.00,
-      targetAmount: 40000.00,
-      createdAt: '2024-03-10',
-      lastUpdate: '2024-05-22'
-    }
-  ];
-
-  const mockTransactions = [
-    { id: '1', goalId: '1', amount: 500.00, date: '2024-05-25', description: 'Depósito mensal' },
-    { id: '2', goalId: '2', amount: 300.00, date: '2024-05-20', description: 'Extra freelance' },
-    { id: '3', goalId: '1', amount: 1000.00, date: '2024-05-15', description: 'Bonus trabalho' },
-  ];
-
-  const handleAddGoal = () => {
-    if (!goalForm.name || !goalForm.initialAmount) {
+  const handleAddGoal = async () => {
+    if (!goalForm.name || !goalForm.initial_amount) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -69,17 +49,24 @@ const Savings = () => {
       return;
     }
     
-    toast({
-      title: "Meta criada!",
-      description: `Meta "${goalForm.name}" foi criada com sucesso`,
-    });
+    const initialAmount = parseFloat(goalForm.initial_amount);
+    const targetAmount = goalForm.target_amount ? parseFloat(goalForm.target_amount) : 0;
     
-    setGoalForm({ name: '', initialAmount: '', targetAmount: '' });
-    setShowAddGoal(false);
+    const result = await addSavingsGoal({
+      name: goalForm.name,
+      initial_amount: initialAmount,
+      current_amount: initialAmount,
+      target_amount: targetAmount
+    });
+
+    if (result) {
+      setGoalForm({ name: '', initial_amount: '', target_amount: '' });
+      setShowAddGoal(false);
+    }
   };
 
-  const handleAddTransaction = () => {
-    if (!transactionForm.goalId || !transactionForm.amount || !transactionForm.date) {
+  const handleAddTransaction = async () => {
+    if (!transactionForm.goal_id || !transactionForm.amount || !transactionForm.date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -88,13 +75,21 @@ const Savings = () => {
       return;
     }
     
-    toast({
-      title: "Rendimento adicionado!",
-      description: `R$ ${transactionForm.amount} foi adicionado à sua meta`,
+    const result = await addSavingsTransaction({
+      goal_id: transactionForm.goal_id,
+      amount: parseFloat(transactionForm.amount),
+      date: transactionForm.date,
+      description: transactionForm.description
     });
-    
-    setTransactionForm({ goalId: '', amount: '', date: '', description: '' });
-    setShowAddTransaction(false);
+
+    if (result) {
+      setTransactionForm({ goal_id: '', amount: '', date: '', description: '' });
+      setShowAddTransaction(false);
+    }
+  };
+
+  const handleDeleteGoal = async (id: string) => {
+    await deleteSavingsGoal(id);
   };
 
   const getProgress = (current: number, target: number) => {
@@ -108,12 +103,25 @@ const Savings = () => {
     return 'bg-red-500';
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Reservas e Metas</h2>
-          <p className="text-gray-600 mt-1">Crie e acompanhe suas "caixinhas" de economia</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Reservas e Metas</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Crie e acompanhe suas "caixinhas" de economia</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setShowAddGoal(!showAddGoal)} variant="outline">
@@ -153,8 +161,8 @@ const Savings = () => {
                   type="number"
                   step="0.01"
                   placeholder="0,00"
-                  value={goalForm.initialAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, initialAmount: e.target.value })}
+                  value={goalForm.initial_amount}
+                  onChange={(e) => setGoalForm({ ...goalForm, initial_amount: e.target.value })}
                 />
               </div>
               <div>
@@ -164,8 +172,8 @@ const Savings = () => {
                   type="number"
                   step="0.01"
                   placeholder="0,00"
-                  value={goalForm.targetAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                  value={goalForm.target_amount}
+                  onChange={(e) => setGoalForm({ ...goalForm, target_amount: e.target.value })}
                 />
               </div>
             </div>
@@ -195,12 +203,12 @@ const Savings = () => {
                 <Label htmlFor="transactionGoal">Meta *</Label>
                 <select
                   id="transactionGoal"
-                  className="w-full p-2 border rounded-md"
-                  value={transactionForm.goalId}
-                  onChange={(e) => setTransactionForm({ ...transactionForm, goalId: e.target.value })}
+                  className="w-full p-2 border rounded-md bg-white dark:bg-gray-800 dark:border-gray-600"
+                  value={transactionForm.goal_id}
+                  onChange={(e) => setTransactionForm({ ...transactionForm, goal_id: e.target.value })}
                 >
                   <option value="">Selecione a meta</option>
-                  {mockGoals.map((goal) => (
+                  {savingsGoals.map((goal) => (
                     <option key={goal.id} value={goal.id}>
                       {goal.name}
                     </option>
@@ -250,31 +258,40 @@ const Savings = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {mockGoals.map((goal) => {
-          const progress = getProgress(goal.currentAmount, goal.targetAmount);
-          const progressColor = getProgressColor(progress);
+        {savingsGoals.map((goal) => {
+          const progress = getProgress(goal.current_amount, goal.target_amount);
           
           return (
             <Card key={goal.id} className="relative overflow-hidden">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PiggyBank className="h-5 w-5 text-green-600" />
-                  {goal.name}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <PiggyBank className="h-5 w-5 text-green-600" />
+                    {goal.name}
+                  </CardTitle>
+                  <CrudActions
+                    item={goal}
+                    onDelete={() => handleDeleteGoal(goal.id)}
+                    showEdit={false}
+                    showView={false}
+                    deleteTitle="Confirmar exclusão"
+                    deleteDescription="Esta ação não pode ser desfeita. A meta será permanentemente removida."
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">
-                    R$ {goal.currentAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatters.currency(goal.current_amount)}
                   </div>
-                  {goal.targetAmount > 0 && (
-                    <div className="text-sm text-gray-600">
-                      de R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {goal.target_amount > 0 && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      de {formatters.currency(goal.target_amount)}
                     </div>
                   )}
                 </div>
                 
-                {goal.targetAmount > 0 && (
+                {goal.target_amount > 0 && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Progresso</span>
@@ -284,58 +301,60 @@ const Savings = () => {
                   </div>
                 )}
                 
-                <div className="space-y-2 text-xs text-gray-600">
+                <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
                   <div className="flex justify-between">
                     <span>Criado em:</span>
-                    <span>{new Date(goal.createdAt).toLocaleDateString('pt-BR')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Última atualização:</span>
-                    <span>{new Date(goal.lastUpdate).toLocaleDateString('pt-BR')}</span>
+                    <span>{formatters.date(goal.created_at)}</span>
                   </div>
                 </div>
-                
-                <Button variant="outline" className="w-full">
-                  Ver Histórico
-                </Button>
               </CardContent>
             </Card>
           );
         })}
+
+        {savingsGoals.length === 0 && (
+          <div className="col-span-full text-center py-12">
+            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">Nenhuma meta cadastrada</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Meta" para começar</p>
+          </div>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Últimas Movimentações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {mockTransactions.map((transaction) => {
-              const goal = mockGoals.find(g => g.id === transaction.goalId);
-              return (
-                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
+      {savingsTransactions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Últimas Movimentações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {savingsTransactions.slice(0, 10).map((transaction) => {
+                const goal = savingsGoals.find(g => g.id === transaction.goal_id);
+                return (
+                  <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{goal?.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {transaction.description} • {formatters.date(transaction.date)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{goal?.name}</p>
-                      <p className="text-sm text-gray-600">
-                        {transaction.description} • {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">
+                        +{formatters.currency(transaction.amount)}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-green-600">
-                      +R$ {transaction.amount.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

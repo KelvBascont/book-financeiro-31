@@ -13,7 +13,7 @@ interface AssetUpdateConfig {
 
 export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
   const {
-    interval = 30000, // 30 segundos
+    interval = 30000,
     maxRetries = 3,
     enabled = true
   } = config;
@@ -26,13 +26,10 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // Extrair tickers únicos dos investimentos
   const activeTickers = investments.map(inv => inv.ticker).filter(Boolean);
 
-  // Buscar cotações para os tickers ativos
   const { data: quotes, isLoading } = useMultipleStockQuotes(activeTickers);
 
-  // Função para dividir array em chunks
   const chunkArray = <T>(arr: T[], size: number): T[][] => {
     const chunks: T[][] = [];
     for (let i = 0; i < arr.length; i += size) {
@@ -41,21 +38,18 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
     return chunks;
   };
 
-  // Função para atualizar preços no Supabase
   const updateInvestmentPrices = async (quotes: any[]) => {
     if (!quotes || quotes.length === 0) return;
 
     try {
       setIsUpdating(true);
       
-      // Agrupar atualizações por ticker
       const updates = quotes.map(quote => ({
         ticker: quote.symbol,
         current_price: quote.regularMarketPrice || 0,
         updated_at: new Date().toISOString()
       }));
 
-      // Executar atualizações em lotes
       const chunks = chunkArray(updates, 5);
       
       for (const chunk of chunks) {
@@ -75,16 +69,14 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
           })
         );
         
-        // Pequeno delay entre chunks para evitar rate limiting
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // Refresh dos dados locais
       await refreshData();
       
       setLastUpdate(new Date());
       lastUpdateRef.current = new Date();
-      retryCountRef.current = 0; // Reset retry count on success
+      retryCountRef.current = 0;
       
       console.log(`Assets updated successfully: ${updates.length} investments`);
       
@@ -99,29 +91,25 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
           description: "Falha ao atualizar preços dos ativos após várias tentativas",
           variant: "destructive"
         });
-        retryCountRef.current = 0; // Reset para próximas tentativas
+        retryCountRef.current = 0;
       }
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Função principal de atualização
   const performUpdate = async () => {
     if (!enabled || isUpdating || activeTickers.length === 0) {
       return;
     }
 
-    // Verificar se é horário de pregão (9h às 18h, seg-sex)
     const now = new Date();
     const hour = now.getHours();
     const day = now.getDay();
     const isMarketHours = day >= 1 && day <= 5 && hour >= 9 && hour <= 18;
 
-    // Fora do horário de pregão, aumentar intervalo
     const currentInterval = isMarketHours ? interval : interval * 3;
 
-    // Verificar se passou tempo suficiente desde última atualização
     if (lastUpdateRef.current) {
       const timeSinceLastUpdate = now.getTime() - lastUpdateRef.current.getTime();
       if (timeSinceLastUpdate < currentInterval) {
@@ -138,7 +126,6 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
     }
   };
 
-  // Agendar próxima atualização
   const scheduleNextUpdate = () => {
     if (!enabled) return;
 
@@ -147,10 +134,8 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
     const day = now.getDay();
     const isMarketHours = day >= 1 && day <= 5 && hour >= 9 && hour <= 18;
     
-    // Intervalo dinâmico baseado no horário
     const dynamicInterval = isMarketHours ? interval : interval * 2;
     
-    // Backoff exponencial em caso de erros
     const backoffMultiplier = Math.min(Math.pow(2, retryCountRef.current), 8);
     const finalInterval = dynamicInterval * backoffMultiplier;
 
@@ -161,13 +146,9 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
     }, finalInterval);
   };
 
-  // Iniciar/parar atualizações baseado na configuração
   useEffect(() => {
     if (enabled && activeTickers.length > 0) {
-      // Primeira atualização imediata
       performUpdate();
-      
-      // Agendar atualizações subsequentes
       scheduleNextUpdate();
     }
 
@@ -178,7 +159,6 @@ export const useAssetUpdater = (config: AssetUpdateConfig = {}) => {
     };
   }, [enabled, activeTickers.length, interval]);
 
-  // Limpar timer quando componente desmonta
   useEffect(() => {
     return () => {
       if (timerRef.current) {

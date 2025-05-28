@@ -6,53 +6,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, TrendingUp, TrendingDown, DollarSign, RefreshCw, Activity } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, RefreshCw, Activity, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useStockQuote, useSelicRate, useMultipleStockQuotes } from '@/hooks/useMarketData';
+import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
+import CrudActions from '@/components/CrudActions';
 
 const Investments = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddInvestment, setShowAddInvestment] = useState(false);
   
+  const {
+    investments,
+    addInvestment,
+    deleteInvestment,
+    loading
+  } = useSupabaseTables();
+  
   const [investmentForm, setInvestmentForm] = useState({
     ticker: '',
-    averagePrice: '',
+    average_price: '',
     quantity: '',
   });
 
-  // Mock data - em produção, isso viria do Supabase
-  const mockInvestments = [
-    {
-      id: '1',
-      ticker: 'MXRF11',
-      averagePrice: 10.50,
-      quantity: 100,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      ticker: 'PETR4',
-      averagePrice: 32.45,
-      quantity: 200,
-      createdAt: '2024-03-10'
-    },
-    {
-      id: '3',
-      ticker: 'ITUB4',
-      averagePrice: 28.90,
-      quantity: 150,
-      createdAt: '2024-04-05'
-    }
-  ];
-
-  const tickers = mockInvestments.map(inv => inv.ticker);
+  const tickers = investments.map(inv => inv.ticker);
   const { data: stockQuotes, isLoading: quotesLoading, refetch: refetchQuotes } = useMultipleStockQuotes(tickers);
   const { data: selicData, isLoading: selicLoading } = useSelicRate();
 
-  const handleAddInvestment = () => {
-    if (!investmentForm.ticker || !investmentForm.averagePrice || !investmentForm.quantity) {
+  const handleAddInvestment = async () => {
+    if (!investmentForm.ticker || !investmentForm.average_price || !investmentForm.quantity) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -61,13 +45,21 @@ const Investments = () => {
       return;
     }
     
-    toast({
-      title: "Investimento cadastrado!",
-      description: `${investmentForm.ticker} foi adicionado ao seu portfólio`,
+    const result = await addInvestment({
+      ticker: investmentForm.ticker.toUpperCase(),
+      average_price: parseFloat(investmentForm.average_price),
+      quantity: parseInt(investmentForm.quantity),
+      current_price: 0
     });
-    
-    setInvestmentForm({ ticker: '', averagePrice: '', quantity: '' });
-    setShowAddInvestment(false);
+
+    if (result) {
+      setInvestmentForm({ ticker: '', average_price: '', quantity: '' });
+      setShowAddInvestment(false);
+    }
+  };
+
+  const handleDeleteInvestment = async (id: string) => {
+    await deleteInvestment(id);
   };
 
   const updatePrices = () => {
@@ -91,11 +83,11 @@ const Investments = () => {
     let totalInvested = 0;
     let totalCurrent = 0;
     
-    mockInvestments.forEach(investment => {
+    investments.forEach(investment => {
       const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
       if (quote) {
         const { invested, currentValue } = calculateGain(
-          investment.averagePrice,
+          investment.average_price,
           quote.regularMarketPrice,
           investment.quantity
         );
@@ -111,6 +103,20 @@ const Investments = () => {
   };
 
   const portfolioSummary = getTotalPortfolio();
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -196,8 +202,8 @@ const Investments = () => {
                   type="number"
                   step="0.01"
                   placeholder="0,00"
-                  value={investmentForm.averagePrice}
-                  onChange={(e) => setInvestmentForm({ ...investmentForm, averagePrice: e.target.value })}
+                  value={investmentForm.average_price}
+                  onChange={(e) => setInvestmentForm({ ...investmentForm, average_price: e.target.value })}
                 />
               </div>
               <div>
@@ -260,7 +266,7 @@ const Investments = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-lg sm:text-2xl font-bold ${portfolioSummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatters.currencyCompact(Math.abs(portfolioSummary.totalGain))}
+              {portfolioSummary.totalGain >= 0 ? '+' : ''}{formatters.currencyCompact(portfolioSummary.totalGain)}
             </div>
           </CardContent>
         </Card>
@@ -289,7 +295,7 @@ const Investments = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockInvestments.map((investment) => {
+            {investments.map((investment) => {
               const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
               
               if (quotesLoading) {
@@ -318,18 +324,28 @@ const Investments = () => {
                         <div>
                           <p className="font-bold text-lg">{investment.ticker}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.averagePrice)}
+                            {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.average_price)}
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary">Sem dados</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Sem dados</Badge>
+                        <CrudActions
+                          item={investment}
+                          onDelete={() => handleDeleteInvestment(investment.id)}
+                          showEdit={false}
+                          showView={false}
+                          deleteTitle="Confirmar remoção"
+                          deleteDescription="Tem certeza que deseja remover este investimento?"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
               }
 
               const { gain, gainPercentage, invested, currentValue } = calculateGain(
-                investment.averagePrice,
+                investment.average_price,
                 quote.regularMarketPrice,
                 investment.quantity
               );
@@ -344,7 +360,7 @@ const Investments = () => {
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-lg truncate">{quote.shortName || investment.ticker}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.averagePrice)}
+                          {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.average_price)}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           Atual: {formatters.currency(quote.regularMarketPrice)}
@@ -371,11 +387,28 @@ const Investments = () => {
                           {gainPercentage >= 0 ? '+' : ''}{formatters.percentage(gainPercentage)}
                         </p>
                       </div>
+
+                      <CrudActions
+                        item={investment}
+                        onDelete={() => handleDeleteInvestment(investment.id)}
+                        showEdit={false}
+                        showView={false}
+                        deleteTitle="Confirmar remoção"
+                        deleteDescription="Tem certeza que deseja remover este investimento?"
+                      />
                     </div>
                   </div>
                 </div>
               );
             })}
+
+            {investments.length === 0 && (
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Nenhum investimento cadastrado</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Novo Investimento" para começar</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
