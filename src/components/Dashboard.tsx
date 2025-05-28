@@ -230,7 +230,11 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
                   <Tooltip formatter={(value) => formatters.currency(Number(value))} />
-                  <Bar dataKey="value" fill={(entry) => entry.color} />
+                  <Bar dataKey="value">
+                    {barData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                    </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
