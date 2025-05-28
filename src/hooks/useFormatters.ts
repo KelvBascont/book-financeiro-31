@@ -8,6 +8,8 @@ export const useFormatters = () => {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+
+      
   };
 
   const currencyCompact = (value: number): string => {
@@ -51,6 +53,13 @@ export const useFormatters = () => {
     return format(dateObj, 'dd/MM/yyyy HH:mm', { locale: ptBR });
   };
 
+   // Adicione esta nova função
+  const dateISO = (date: string | Date): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toISOString(); 
+  };
+
+
   return {
     currency,
     currencyCompact,
@@ -60,5 +69,6 @@ export const useFormatters = () => {
     dateShort,
     dateMonthYear,
     dateTime,
+    dateISO,
   };
 };
