@@ -559,6 +559,30 @@ export const useSupabaseTables = () => {
     }
   };
 
+  // Adicione esta função para atualizar investimentos
+  const updateInvestment = async (id: string, updates: Partial<Investment>) => {
+    try {
+      const { data, error } = await supabase
+        .from('investments')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setInvestments(prev => prev.map(inv => inv.id === id ? data : inv));
+      return data;
+    } catch (error) {
+      console.error('Error updating investment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar investimento",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     const loadAllData = async () => {
@@ -596,6 +620,8 @@ export const useSupabaseTables = () => {
     addCardExpense,
     deleteCardExpense,
     addInvestment,
+    updateInvestment,
+    fetchInvestments, // ← Adicione esta linha
     deleteInvestment,
     addVehicle,
     deleteVehicle,

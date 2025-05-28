@@ -23,6 +23,7 @@ const Investments = () => {
     investments,
     addInvestment,
     deleteInvestment,
+    updateInvestment, // ← Adicione esta linha
     fetchInvestments, // Certifique-se que esta função está disponível no hook
     loading
   } = useSupabaseTables();
@@ -38,11 +39,26 @@ const Investments = () => {
   const { data: selicData, isLoading: selicLoading } = useSelicRate();
 
   // Atualizar investimentos quando o usuário mudar
-  useEffect(() => {
-    if (user) {
-      fetchInvestments();
-    }
-  }, [user, fetchInvestments]);
+useEffect(() => {
+  const updateInvestmentPrices = async () => {
+    if (!stockQuotes || !investments.length) return;
+    
+    const updatePromises = investments.map(async (investment) => {
+      const quote = stockQuotes.find(q => q.symbol === investment.ticker);
+      if (quote && quote.regularMarketPrice !== investment.current_price) {
+        await updateInvestment(investment.id, {
+          current_price: quote.regularMarketPrice,
+          updated_at: new Date().toISOString()
+        });
+      }
+    });
+
+    await Promise.all(updatePromises);
+    fetchInvestments(); // Atualiza a lista local
+  };
+
+  updateInvestmentPrices();
+}, [stockQuotes]); // Executa sempre que as cotações mudarem
 
   const handleAddInvestment = async () => {
     if (!investmentForm.ticker || !investmentForm.average_price || !investmentForm.quantity) {
