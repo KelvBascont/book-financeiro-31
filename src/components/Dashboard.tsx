@@ -204,7 +204,7 @@ const Dashboard = () => {
                     cy="50%"
                     outerRadius={100}
                     fill="#8884d8"
-                    dataKey="value"
+                    dataKey="Valor"
                     label={({ name, value }) => `${name}: ${formatters.currency(value)}`}
                   >
                     {expenseData.map((entry, index) => (
@@ -218,7 +218,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Gráfico de Barras - Receita vs Despesas */}
+          {/* Gráfico de Barras - Receita vs Despesas (CORRIGIDO) */}
           <Card>
             <CardHeader>
               <CardTitle>Receitas vs Despesas - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
@@ -230,11 +230,11 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
                   <Tooltip formatter={(value) => formatters.currency(Number(value))} />
-                  <Bar dataKey="value">
+                  <Bar dataKey="Valor">
                     {barData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
-                    </Bar>
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
