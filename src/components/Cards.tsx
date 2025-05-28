@@ -6,70 +6,46 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, CreditCard, Calendar, AlertCircle, Edit } from 'lucide-react';
+import { Plus, CreditCard, Calendar, AlertCircle, Edit, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useSupabaseTables } from '@/hooks/useSupabaseTables';
+import CrudActions from '@/components/CrudActions';
 
 const Cards = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddCard, setShowAddCard] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [editingCard, setEditingCard] = useState<any>(null);
+  
+  const {
+    cards,
+    cardExpenses,
+    addCard,
+    updateCard,
+    deleteCard,
+    loading
+  } = useSupabaseTables();
   
   const [cardForm, setCardForm] = useState({
     name: '',
-    dueDate: '',
-    closingDate: ''
+    due_date: '',
+    closing_date: ''
   });
 
   const [expenseForm, setExpenseForm] = useState({
-    cardId: '',
-    purchaseDate: '',
+    card_id: '',
+    purchase_date: '',
     description: '',
     amount: '',
-    isInstallment: false,
-    installments: ''
+    is_installment: false,
+    installments: '',
+    billing_month: ''
   });
 
-  const mockCards = [
-    { id: '1', name: 'Nubank', dueDate: 15, closingDate: 8 },
-    { id: '2', name: 'Itaú', dueDate: 5, closingDate: 28 },
-    { id: '3', name: 'Bradesco', dueDate: 10, closingDate: 3 },
-  ];
-
-  const mockExpenses = [
-    {
-      id: '1',
-      cardId: '1',
-      description: 'Supermercado Extra',
-      amount: 450.00,
-      purchaseDate: '2024-05-25',
-      billingMonth: 'Jul/2024',
-      isInstallment: false
-    },
-    {
-      id: '2',
-      cardId: '1',
-      description: 'Notebook Dell',
-      amount: 2800.00,
-      purchaseDate: '2024-05-20',
-      billingMonth: 'Jun/2024',
-      isInstallment: true,
-      installments: '3/12'
-    },
-    {
-      id: '3',
-      cardId: '2',
-      description: 'Farmácia',
-      amount: 85.50,
-      purchaseDate: '2024-05-28',
-      billingMonth: 'Jun/2024',
-      isInstallment: false
-    }
-  ];
-
-  const handleAddCard = () => {
-    if (!cardForm.name || !cardForm.dueDate || !cardForm.closingDate) {
+  const handleAddCard = async () => {
+    if (!cardForm.name || !cardForm.due_date || !cardForm.closing_date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -78,17 +54,30 @@ const Cards = () => {
       return;
     }
     
-    toast({
-      title: "Cartão cadastrado!",
-      description: `Cartão ${cardForm.name} foi adicionado com sucesso`,
+    const result = await addCard({
+      name: cardForm.name,
+      due_date: parseInt(cardForm.due_date),
+      closing_date: parseInt(cardForm.closing_date)
     });
-    
-    setCardForm({ name: '', dueDate: '', closingDate: '' });
-    setShowAddCard(false);
+
+    if (result) {
+      setCardForm({ name: '', due_date: '', closing_date: '' });
+      setShowAddCard(false);
+    }
   };
 
-  const handleAddExpense = () => {
-    if (!expenseForm.cardId || !expenseForm.purchaseDate || !expenseForm.description || !expenseForm.amount) {
+  const handleEditCard = (card: any) => {
+    setEditingCard(card);
+    setCardForm({
+      name: card.name,
+      due_date: card.due_date.toString(),
+      closing_date: card.closing_date.toString()
+    });
+    setShowAddCard(true);
+  };
+
+  const handleUpdateCard = async () => {
+    if (!editingCard || !cardForm.name || !cardForm.due_date || !cardForm.closing_date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -97,13 +86,83 @@ const Cards = () => {
       return;
     }
     
-    toast({
-      title: "Despesa registrada!",
-      description: `Despesa de ${formatters.currency(parseFloat(expenseForm.amount))} foi adicionada`,
+    const result = await updateCard(editingCard.id, {
+      name: cardForm.name,
+      due_date: parseInt(cardForm.due_date),
+      closing_date: parseInt(cardForm.closing_date)
     });
+
+    if (result) {
+      setCardForm({ name: '', due_date: '', closing_date: '' });
+      setShowAddCard(false);
+      setEditingCard(null);
+    }
+  };
+
+  const handleDeleteCard = async (id: string) => {
+    await deleteCard(id);
+  };
+
+  const handleAddExpense = async () => {
+    if (!expenseForm.card_id || !expenseForm.purchase_date || !expenseForm.description || !expenseForm.amount) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedCard = cards.find(c => c.id === expenseForm.card_id);
+    if (!selectedCard) return;
+
+    const billingMonth = calculateBillingMonth(expenseForm.purchase_date, selectedCard.closing_date);
     
-    setExpenseForm({ cardId: '', purchaseDate: '', description: '', amount: '', isInstallment: false, installments: '' });
-    setShowAddExpense(false);
+    const expenseData = {
+      card_id: expenseForm.card_id,
+      description: expenseForm.description,
+      amount: parseFloat(expenseForm.amount),
+      purchase_date: expenseForm.purchase_date,
+      billing_month: billingMonth,
+      is_installment: expenseForm.is_installment,
+      installments: expenseForm.is_installment ? parseInt(expenseForm.installments) : null,
+      current_installment: expenseForm.is_installment ? 1 : null
+    };
+
+    // Adicionar despesa através do hook useSupabaseTables
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { useAuth } = await import('@/contexts/AuthContext');
+      
+      // Simular inserção - você pode expandir o useSupabaseTables para incluir card_expenses
+      const { error } = await supabase
+        .from('card_expenses')
+        .insert([expenseData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Despesa registrada!",
+        description: `Despesa de ${formatters.currency(parseFloat(expenseForm.amount))} foi adicionada`,
+      });
+      
+      setExpenseForm({ 
+        card_id: '', 
+        purchase_date: '', 
+        description: '', 
+        amount: '', 
+        is_installment: false, 
+        installments: '',
+        billing_month: ''
+      });
+      setShowAddExpense(false);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao registrar despesa",
+        variant: "destructive"
+      });
+    }
   };
 
   const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
@@ -113,16 +172,28 @@ const Cards = () => {
     
     if (purchase.getDate() > closingDate) {
       const billingMonth = new Date(year, month + 2, 1);
-      return formatters.dateMonthYear(billingMonth);
+      return formatters.dateISO(billingMonth);
     } else {
       const billingMonth = new Date(year, month + 1, 1);
-      return formatters.dateMonthYear(billingMonth);
+      return formatters.dateISO(billingMonth);
     }
   };
 
   const getTotalExpenses = () => {
-    return mockExpenses.reduce((total, expense) => total + expense.amount, 0);
+    return cardExpenses.reduce((total, expense) => total + expense.amount, 0);
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -163,7 +234,7 @@ const Cards = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Cartões Ativos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockCards.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cards.length}</p>
               </div>
               <CreditCard className="h-8 w-8 text-blue-500" />
             </div>
@@ -174,7 +245,7 @@ const Cards = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Despesas do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockExpenses.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cardExpenses.length}</p>
               </div>
               <Calendar className="h-8 w-8 text-green-500" />
             </div>
@@ -187,7 +258,7 @@ const Cards = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Cadastrar Novo Cartão
+              {editingCard ? 'Editar Cartão' : 'Cadastrar Novo Cartão'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -209,8 +280,8 @@ const Cards = () => {
                   min="1"
                   max="31"
                   placeholder="Ex: 15"
-                  value={cardForm.dueDate}
-                  onChange={(e) => setCardForm({ ...cardForm, dueDate: e.target.value })}
+                  value={cardForm.due_date}
+                  onChange={(e) => setCardForm({ ...cardForm, due_date: e.target.value })}
                 />
               </div>
               <div>
@@ -221,17 +292,28 @@ const Cards = () => {
                   min="1"
                   max="31"
                   placeholder="Ex: 8"
-                  value={cardForm.closingDate}
-                  onChange={(e) => setCardForm({ ...cardForm, closingDate: e.target.value })}
+                  value={cardForm.closing_date}
+                  onChange={(e) => setCardForm({ ...cardForm, closing_date: e.target.value })}
                 />
               </div>
             </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddCard(false)} className="w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowAddCard(false);
+                  setEditingCard(null);
+                  setCardForm({ name: '', due_date: '', closing_date: '' });
+                }} 
+                className="w-full sm:w-auto"
+              >
                 Cancelar
               </Button>
-              <Button onClick={handleAddCard} className="w-full sm:w-auto">
-                Cadastrar Cartão
+              <Button 
+                onClick={editingCard ? handleUpdateCard : handleAddCard} 
+                className="w-full sm:w-auto"
+              >
+                {editingCard ? 'Atualizar' : 'Cadastrar'} Cartão
               </Button>
             </div>
           </CardContent>
@@ -250,12 +332,12 @@ const Cards = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="expenseCard">Cartão *</Label>
-                <Select value={expenseForm.cardId} onValueChange={(value) => setExpenseForm({ ...expenseForm, cardId: value })}>
+                <Select value={expenseForm.card_id} onValueChange={(value) => setExpenseForm({ ...expenseForm, card_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o cartão" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockCards.map((card) => (
+                    {cards.map((card) => (
                       <SelectItem key={card.id} value={card.id}>
                         {card.name}
                       </SelectItem>
@@ -268,8 +350,8 @@ const Cards = () => {
                 <Input
                   id="purchaseDate"
                   type="date"
-                  value={expenseForm.purchaseDate}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, purchaseDate: e.target.value })}
+                  value={expenseForm.purchase_date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, purchase_date: e.target.value })}
                 />
               </div>
               <div>
@@ -297,13 +379,13 @@ const Cards = () => {
             <div className="flex items-center space-x-2">
               <Switch
                 id="installment"
-                checked={expenseForm.isInstallment}
-                onCheckedChange={(checked) => setExpenseForm({ ...expenseForm, isInstallment: checked })}
+                checked={expenseForm.is_installment}
+                onCheckedChange={(checked) => setExpenseForm({ ...expenseForm, is_installment: checked })}
               />
               <Label htmlFor="installment">Compra parcelada</Label>
             </div>
             
-            {expenseForm.isInstallment && (
+            {expenseForm.is_installment && (
               <div className="w-full sm:w-32">
                 <Label htmlFor="installments">Número de Parcelas</Label>
                 <Input
@@ -318,13 +400,13 @@ const Cards = () => {
               </div>
             )}
 
-            {expenseForm.purchaseDate && expenseForm.cardId && (
+            {expenseForm.purchase_date && expenseForm.card_id && (
               <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
                 <span className="text-sm text-blue-800 dark:text-blue-200">
                   Esta despesa será cobrada na fatura de{' '}
                   <strong>
-                    {calculateBillingMonth(expenseForm.purchaseDate, mockCards.find(c => c.id === expenseForm.cardId)?.closingDate || 0)}
+                    {formatters.dateMonthYear(new Date(calculateBillingMonth(expenseForm.purchase_date, cards.find(c => c.id === expenseForm.card_id)?.closing_date || 0)))}
                   </strong>
                 </span>
               </div>
@@ -349,23 +431,35 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockCards.map((card) => (
+              {cards.map((card) => (
                 <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
                   <div className="flex items-center gap-3">
                     <CreditCard className="h-8 w-8 text-blue-600 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{card.name}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Venc: {card.dueDate} | Fech: {card.closingDate}
+                        Venc: {card.due_date} | Fech: {card.closing_date}
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
+                  <CrudActions
+                    item={card}
+                    onEdit={handleEditCard}
+                    onDelete={() => handleDeleteCard(card.id)}
+                    showView={false}
+                    deleteTitle="Confirmar exclusão"
+                    deleteDescription="Esta ação não pode ser desfeita. O cartão será permanentemente removido."
+                  />
                 </div>
               ))}
+              
+              {cards.length === 0 && (
+                <div className="text-center py-8">
+                  <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhum cartão cadastrado</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Novo Cartão" para começar</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -376,25 +470,35 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockExpenses.slice(0, 5).map((expense) => (
+              {cardExpenses.slice(0, 5).map((expense) => (
                 <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{expense.description}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {mockCards.find(c => c.id === expense.cardId)?.name} • {formatters.date(expense.purchaseDate)}
+                      {cards.find(c => c.id === expense.card_id)?.name} • {formatters.date(expense.purchase_date)}
                     </p>
                     <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
-                      Fatura: {expense.billingMonth}
+                      Fatura: {formatters.dateMonthYear(new Date(expense.billing_month))}
                     </span>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
-                    {expense.isInstallment && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{expense.installments}</p>
+                    {expense.is_installment && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {expense.current_installment}/{expense.installments}
+                      </p>
                     )}
                   </div>
                 </div>
               ))}
+              
+              {cardExpenses.length === 0 && (
+                <div className="text-center py-8">
+                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhuma despesa registrada</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Despesa" para começar</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -55,6 +55,7 @@ export const useStockQuote = (ticker: string) => {
       );
       
       if (!response.ok) {
+        console.error(`Erro ao buscar cotação: ${response.status} - ${response.statusText}`);
         throw new Error(`Erro ao buscar cotação: ${response.statusText}`);
       }
       
@@ -66,6 +67,8 @@ export const useStockQuote = (ticker: string) => {
     enabled: !!ticker,
     staleTime: 60000, // 1 minuto
     refetchInterval: 30000, // 30 segundos
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -85,6 +88,7 @@ export const useMultipleStockQuotes = (tickers: string[]) => {
       );
       
       if (!response.ok) {
+        console.error(`Erro ao buscar cotações: ${response.status} - ${response.statusText}`);
         throw new Error(`Erro ao buscar cotações: ${response.statusText}`);
       }
       
@@ -96,6 +100,8 @@ export const useMultipleStockQuotes = (tickers: string[]) => {
     enabled: tickers && tickers.length > 0,
     staleTime: 60000, // 1 minuto
     refetchInterval: 30000, // 30 segundos
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -110,6 +116,7 @@ export const useSelicRate = () => {
       );
       
       if (!response.ok) {
+        console.error(`Erro ao buscar taxa SELIC: ${response.status} - ${response.statusText}`);
         throw new Error('Erro ao buscar taxa SELIC');
       }
       
@@ -123,5 +130,7 @@ export const useSelicRate = () => {
     },
     staleTime: 3600000, // 1 hora
     refetchInterval: 3600000, // 1 hora
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };

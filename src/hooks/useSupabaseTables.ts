@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -291,6 +290,57 @@ export const useSupabaseTables = () => {
     }
   };
 
+  // CRUD Operations for Card Expenses
+  const addCardExpense = async (expense: Omit<CardExpense, 'id' | 'user_id' | 'created_at'>) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('card_expenses')
+        .insert([{ ...expense, user_id: user.id }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setCardExpenses(prev => [data, ...prev]);
+      toast({
+        title: "Sucesso",
+        description: "Despesa de cartão adicionada com sucesso"
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding card expense:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar despesa de cartão",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteCardExpense = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('card_expenses')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      setCardExpenses(prev => prev.filter(expense => expense.id !== id));
+      toast({
+        title: "Removido",
+        description: "Despesa de cartão removida com sucesso"
+      });
+    } catch (error) {
+      console.error('Error deleting card expense:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover despesa de cartão",
+        variant: "destructive"
+      });
+    }
+  };
+
   // CRUD Operations for Investments
   const addInvestment = async (investment: Omit<Investment, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return;
@@ -541,6 +591,8 @@ export const useSupabaseTables = () => {
     addCard,
     updateCard,
     deleteCard,
+    addCardExpense,
+    deleteCardExpense,
     addInvestment,
     deleteInvestment,
     addVehicle,

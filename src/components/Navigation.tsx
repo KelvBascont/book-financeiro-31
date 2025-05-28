@@ -1,5 +1,5 @@
 
-import { CreditCard, Target, Car, TrendingUp, BarChart3, DollarSign, Receipt } from 'lucide-react';
+import { CreditCard, Target, Car, TrendingUp, BarChart3, DollarSign, Receipt, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavigationProps {
@@ -17,6 +17,7 @@ const Navigation = ({ activeTab, onTabChange, isVisible = true }: NavigationProp
     { id: 'savings', label: 'Reservas/Metas', icon: Target },
     { id: 'vehicles', label: 'Veículos', icon: Car },
     { id: 'investments', label: 'Investimentos', icon: TrendingUp },
+    { id: 'spreadsheet', label: 'Planilha', icon: FileSpreadsheet },
   ];
 
   if (!isVisible) {

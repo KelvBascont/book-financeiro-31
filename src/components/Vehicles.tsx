@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Car, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Car, Calendar, DollarSign, TrendingUp, CheckCircle, Circle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
@@ -28,7 +29,8 @@ const Vehicles = () => {
     total_amount: '',
     installments: '',
     start_date: '',
-    installment_value: ''
+    installment_value: '',
+    paid_installments: ''
   });
 
   const handleAddVehicle = async () => {
@@ -44,17 +46,26 @@ const Vehicles = () => {
     const totalAmount = parseFloat(vehicleForm.total_amount);
     const installments = parseInt(vehicleForm.installments);
     const installmentValue = totalAmount / installments;
+    const paidInstallments = parseInt(vehicleForm.paid_installments) || 0;
     
     const result = await addVehicle({
       description: vehicleForm.description,
       total_amount: totalAmount,
       installments: installments,
       start_date: vehicleForm.start_date,
-      installment_value: installmentValue
+      installment_value: installmentValue,
+      paid_installments: paidInstallments
     });
 
     if (result) {
-      setVehicleForm({ description: '', total_amount: '', installments: '', start_date: '', installment_value: '' });
+      setVehicleForm({ 
+        description: '', 
+        total_amount: '', 
+        installments: '', 
+        start_date: '', 
+        installment_value: '',
+        paid_installments: ''
+      });
       setShowAddVehicle(false);
     }
   };
@@ -63,16 +74,46 @@ const Vehicles = () => {
     await deleteVehicle(id);
   };
 
+  const updatePaidInstallments = async (vehicleId: string, newPaidInstallments: number) => {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { error } = await supabase
+        .from('vehicles')
+        .update({ paid_installments: newPaidInstallments })
+        .eq('id', vehicleId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Atualizado",
+        description: "Parcelas pagas atualizadas com sucesso"
+      });
+      
+      // Refresh data
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar parcelas pagas",
+        variant: "destructive"
+      });
+    }
+  };
+
   const calculateProgress = (vehicle: any) => {
-    const startDate = new Date(vehicle.start_date);
-    const currentDate = new Date();
-    const monthsDiff = Math.max(0, (currentDate.getFullYear() - startDate.getFullYear()) * 12 + currentDate.getMonth() - startDate.getMonth());
-    const paidInstallments = Math.min(monthsDiff, vehicle.installments);
+    const paidInstallments = vehicle.paid_installments || 0;
+    const totalInstallments = vehicle.installments;
+    const progress = (paidInstallments / totalInstallments) * 100;
+    const remainingAmount = (totalInstallments - paidInstallments) * vehicle.installment_value;
+    const paidAmount = paidInstallments * vehicle.installment_value;
+    
     return {
       paidInstallments,
-      progress: (paidInstallments / vehicle.installments) * 100,
-      remainingAmount: (vehicle.installments - paidInstallments) * vehicle.installment_value,
-      paidAmount: paidInstallments * vehicle.installment_value
+      progress,
+      remainingAmount,
+      paidAmount,
+      isCompleted: paidInstallments >= totalInstallments
     };
   };
 
@@ -165,7 +206,7 @@ const Vehicles = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <Label htmlFor="description">Descrição *</Label>
                 <Input
@@ -207,6 +248,17 @@ const Vehicles = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="paidInstallments">Parcelas Pagas</Label>
+                <Input
+                  id="paidInstallments"
+                  type="number"
+                  min="0"
+                  placeholder="Ex: 12"
+                  value={vehicleForm.paid_installments}
+                  onChange={(e) => setVehicleForm({ ...vehicleForm, paid_installments: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label htmlFor="startDate">Data de Início *</Label>
                 <Input
                   id="startDate"
@@ -239,7 +291,7 @@ const Vehicles = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {vehicles.map((vehicle) => {
-          const { paidInstallments, progress, remainingAmount, paidAmount } = calculateProgress(vehicle);
+          const { paidInstallments, progress, remainingAmount, paidAmount, isCompleted } = calculateProgress(vehicle);
           
           return (
             <Card key={vehicle.id} className="relative overflow-hidden">
@@ -248,6 +300,12 @@ const Vehicles = () => {
                   <CardTitle className="flex items-center gap-2">
                     <Car className="h-5 w-5 text-purple-600" />
                     <span className="truncate">{vehicle.description}</span>
+                    {isCompleted && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-700">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Quitado
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CrudActions
                     item={vehicle}
@@ -286,6 +344,43 @@ const Vehicles = () => {
                   </div>
                   <Progress value={progress} className="h-3" />
                   <p className="text-xs text-gray-600 dark:text-gray-400 text-center">{progress.toFixed(1)}% concluído</p>
+                </div>
+
+                {/* Controle de parcelas pagas */}
+                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Controle de Parcelas</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updatePaidInstallments(vehicle.id, Math.max(0, paidInstallments - 1))}
+                        disabled={paidInstallments <= 0}
+                      >
+                        -
+                      </Button>
+                      <span className="text-sm font-bold px-2">{paidInstallments}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updatePaidInstallments(vehicle.id, Math.min(vehicle.installments, paidInstallments + 1))}
+                        disabled={paidInstallments >= vehicle.installments}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs">
+                    {isCompleted ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-gray-400" />
+                    )}
+                    <span className={isCompleted ? "text-green-600 font-medium" : "text-gray-600"}>
+                      {isCompleted ? "Financiamento quitado!" : `Restam ${vehicle.installments - paidInstallments} parcelas`}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">

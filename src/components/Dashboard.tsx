@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Menu, X, DollarSign, CreditCard, Target, TrendingUp, PiggyBank, Receipt } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import MonthSelector from '@/components/MonthSelector';
@@ -13,6 +14,7 @@ import Cards from '@/components/Cards';
 import Savings from '@/components/Savings';
 import Vehicles from '@/components/Vehicles';
 import Investments from '@/components/Investments';
+import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useAssetUpdater } from '@/hooks/useAssetUpdater';
@@ -25,7 +27,7 @@ const Dashboard = () => {
   const [sidebarHovered, setSidebarHovered] = useState(false);
   
   const { selectedMonth, getTotalIncomes, getTotalCashExpenses, getBalance } = useFinancial();
-  const { cards, investments, vehicles, savingsGoals } = useSupabaseTables();
+  const { cards, investments, vehicles, savingsGoals, cardExpenses } = useSupabaseTables();
   const formatters = useFormatters();
 
   // Ativar atualizador de ativos
@@ -65,6 +67,8 @@ const Dashboard = () => {
         return <Vehicles />;
       case 'investments':
         return <Investments />;
+      case 'spreadsheet':
+        return <FinancialSpreadsheet />;
       default:
         return <DashboardContent />;
     }
@@ -86,6 +90,38 @@ const Dashboard = () => {
     
     // Calcular total de financiamentos de veículos
     const totalVehicleFinancing = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
+
+    // Dados para gráfico de pizza - Distribuição de gastos
+    const expenseData = [
+      {
+        name: 'Despesas à Vista',
+        value: totalExpenses,
+        color: '#ef4444'
+      },
+      {
+        name: 'Cartões',
+        value: cardExpenses.filter(expense => {
+          const expenseDate = new Date(expense.billing_month);
+          return expenseDate.getMonth() === selectedMonth.getMonth() && 
+                 expenseDate.getFullYear() === selectedMonth.getFullYear();
+        }).reduce((sum, expense) => sum + expense.amount, 0),
+        color: '#f97316'
+      }
+    ];
+
+    // Dados para gráfico de barras - Receita vs Despesas
+    const barData = [
+      {
+        name: 'Receitas',
+        value: totalIncomes,
+        color: '#22c55e'
+      },
+      {
+        name: 'Despesas',
+        value: totalExpenses + expenseData[1].value,
+        color: '#ef4444'
+      }
+    ];
 
     return (
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -117,7 +153,7 @@ const Dashboard = () => {
               <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-sm text-red-600 dark:text-red-400 font-medium">Despesas</p>
                 <p className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-300">
-                  {formatters.currency(totalExpenses)}
+                  {formatters.currency(totalExpenses + expenseData[1].value)}
                 </p>
               </div>
               
@@ -138,7 +174,7 @@ const Dashboard = () => {
                     ? 'text-blue-700 dark:text-blue-300' 
                     : 'text-red-700 dark:text-red-300'
                 }`}>
-                  {formatters.currency(Math.abs(balance))}
+                  {formatters.currency(Math.abs(balance - expenseData[1].value))}
                 </p>
               </div>
               
@@ -151,6 +187,55 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Gráficos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de Pizza - Distribuição de Gastos */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição de Gastos - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={expenseData.filter(item => item.value > 0)}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${formatters.currency(value)}`}
+                  >
+                    {expenseData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatters.currency(Number(value))} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Barras - Receita vs Despesas */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Receitas vs Despesas - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
+                  <Tooltip formatter={(value) => formatters.currency(Number(value))} />
+                  <Bar dataKey="value" fill={(entry) => entry.color} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Cards de Visão Geral */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
