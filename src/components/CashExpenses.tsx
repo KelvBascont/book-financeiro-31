@@ -86,7 +86,7 @@ const CashExpenses = () => {
     <div className="p-3 sm:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Despesas à Vista</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Despesas Correntes</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             Gerencie despesas pagas fora do cartão de crédito - {formatters.dateMonthYear(selectedMonth)}
           </p>

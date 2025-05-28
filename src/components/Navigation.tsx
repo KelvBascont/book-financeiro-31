@@ -12,7 +12,7 @@ const Navigation = ({ activeTab, onTabChange, isVisible = true }: NavigationProp
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'income', label: 'Receitas', icon: DollarSign },
-    { id: 'cash-expenses', label: 'Despesas à Vista', icon: Receipt },
+    { id: 'cash-expenses', label: 'Despesas Correntes', icon: Receipt },
     { id: 'cards', label: 'Cartões', icon: CreditCard },
     { id: 'savings', label: 'Reservas/Metas', icon: Target },
     { id: 'vehicles', label: 'Veículos', icon: Car },

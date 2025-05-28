@@ -50,7 +50,7 @@ export const useSupabaseData = () => {
       console.error('Error fetching cash expenses:', error);
       toast({
         title: "Erro",
-        description: "Erro ao carregar despesas à vista",
+        description: "Erro ao carregar despesas Correntes",
         variant: "destructive"
       });
     }
