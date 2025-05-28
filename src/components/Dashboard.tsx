@@ -94,7 +94,7 @@ const Dashboard = () => {
     // Dados para gráfico de pizza - Distribuição de gastos
     const expenseData = [
       {
-        name: 'Despesas à Vista',
+        name: 'Despesas Correntes',
         value: totalExpenses,
         color: '#ef4444'
       },
