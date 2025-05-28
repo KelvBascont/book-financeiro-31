@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
 import CrudActions from '@/components/CrudActions';
+import { useAuth } from '@/contexts/AuthContext'; // Importe o contexto de autenticação
 
 const Vehicles = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const { user } = useAuth(); // Obtenha o usuário logado
   
   const {
     vehicles,
@@ -30,7 +31,7 @@ const Vehicles = () => {
     installments: '',
     start_date: '',
     installment_value: '',
-    paid_installments: ''
+    paid_installments: '0' // Valor padrão 0
   });
 
   const handleAddVehicle = async () => {
@@ -54,7 +55,8 @@ const Vehicles = () => {
       installments: installments,
       start_date: vehicleForm.start_date,
       installment_value: installmentValue,
-      paid_installments: paidInstallments
+      paid_installments: paidInstallments, // Nova coluna
+      user_id: user?.id || '' // Garantir que o user_id está presente
     });
 
     if (result) {
@@ -64,7 +66,7 @@ const Vehicles = () => {
         installments: '', 
         start_date: '', 
         installment_value: '',
-        paid_installments: ''
+        paid_installments: '0'
       });
       setShowAddVehicle(false);
     }

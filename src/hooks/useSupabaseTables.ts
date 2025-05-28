@@ -46,6 +46,8 @@ export interface Vehicle {
   installment_value: number;
   start_date: string;
   created_at: string;
+  paid_installments: number; // Nova propriedade
+
 }
 
 export interface SavingsGoal {
