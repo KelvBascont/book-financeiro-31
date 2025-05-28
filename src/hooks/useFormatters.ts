@@ -1,81 +1,64 @@
 
-import { useMemo } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export const useFormatters = () => {
-  const formatters = useMemo(() => ({
-    currency: (value: number) => {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
-    },
-    
-    currencyCompact: (value: number) => {
-      if (Math.abs(value) >= 1000000) {
-        return new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-          notation: 'compact',
-          compactDisplay: 'short',
-        }).format(value);
-      }
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
-    },
-    
-    percentage: (value: number, decimals = 2) => {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'percent',
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      }).format(value / 100);
-    },
-    
-    number: (value: number, decimals = 0) => {
-      return new Intl.NumberFormat('pt-BR', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      }).format(value);
-    },
-    
-    date: (date: string | Date) => {
-      return new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }).format(new Date(date));
-    },
-    
-    dateShort: (date: string | Date) => {
-      return new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit',
-        month: 'short',
-      }).format(new Date(date));
-    },
-    
-    dateMonthYear: (date: string | Date) => {
-      return new Intl.DateTimeFormat('pt-BR', {
-        month: 'short',
-        year: 'numeric',
-      }).format(new Date(date));
-    },
+  const currency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
 
-    dateTime: (date: string | Date) => {
-      return new Intl.DateTimeFormat('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date(date));
+  const currencyCompact = (value: number): string => {
+    if (value >= 1000000) {
+      return `R$ ${(value / 1000000).toFixed(1)}M`;
     }
-  }), []);
+    if (value >= 1000) {
+      return `R$ ${(value / 1000).toFixed(1)}K`;
+    }
+    return currency(value);
+  };
 
-  return formatters;
+  const percentage = (value: number, decimals: number = 1): string => {
+    return `${value.toFixed(decimals)}%`;
+  };
+
+  const number = (value: number, decimals: number = 2): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value);
+  };
+
+  const date = (date: string | Date): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  const dateShort = (date: string | Date): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, 'dd/MM', { locale: ptBR });
+  };
+
+  const dateMonthYear = (date: string | Date): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, 'MMM/yyyy', { locale: ptBR });
+  };
+
+  const dateTime = (date: string | Date): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+  };
+
+  return {
+    currency,
+    currencyCompact,
+    percentage,
+    number,
+    date,
+    dateShort,
+    dateMonthYear,
+    dateTime,
+  };
 };

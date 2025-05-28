@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, CreditCard, Target, Car, DollarSign, BarChart, Calendar, LogOut } from 'lucide-react';
+import { TrendingUp, TrendingDown, CreditCard, Target, Car, DollarSign, BarChart, Calendar, LogOut, Menu, X } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSelicRate } from '@/hooks/useMarketData';
 import { useFinancial } from '@/contexts/FinancialContext';
@@ -21,13 +21,68 @@ import Cards from './Cards';
 import Savings from './Savings';
 import Vehicles from './Vehicles';
 import Investments from './Investments';
+import WelcomeScreen from './WelcomeScreen';
+import { useSupabaseTables } from '@/hooks/useSupabaseTables';
+import { useAssetUpdater } from '@/hooks/useAssetUpdater';
+import { useSelic } from '@/hooks/useSelic';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  
   const formatters = useFormatters();
   const { data: selicData, isLoading: selicLoading } = useSelicRate();
   const { getTotalCashExpenses, getTotalIncomes, getBalance, selectedMonth } = useFinancial();
   const { user } = useAuth();
+  
+  // Hook para dados das tabelas
+  const { cards, cardExpenses, investments, vehicles, savingsGoals, loading } = useSupabaseTables();
+  
+  // Hook para atualização automática de ativos
+  const { isUpdating, lastUpdate, activeTickers } = useAssetUpdater({
+    interval: 30000, // 30 segundos
+    enabled: activeTab === 'investments' || activeTab === 'dashboard'
+  });
+  
+  // Hook para SELIC automática
+  const { selic, isLoading: selicAutoLoading } = useSelic(true, 300000);
+
+  // Verificar se deve mostrar boas-vindas
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('finance_app_welcome_seen');
+    if (!hasSeenWelcome && user) {
+      setShowWelcome(true);
+    }
+  }, [user]);
+
+  // Controle inteligente da navegação
+  useEffect(() => {
+    if (activeTab !== 'dashboard') {
+      setSidebarVisible(false);
+    } else {
+      setSidebarVisible(true);
+    }
+  }, [activeTab]);
+
+  // Extrair nome do usuário
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    
+    if (user?.email) {
+      const emailName = user.email.split('@')[0];
+      return emailName
+        .replace(/[^a-zA-Z\s]/g, '')
+        .split(/[\s_.-]+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ') || 'Usuário';
+    }
+    
+    return 'Usuário';
+  };
 
   const handleSignOut = async () => {
     try {
@@ -38,19 +93,23 @@ const Dashboard = () => {
     }
   };
 
-  const mockData = {
-    totalExpenses: 4250.80,
-    totalSavings: 15000.00,
-    totalInvestments: 25000.00,
-    vehiclePayments: 1200.00,
-    monthlyGrowth: 5.2,
-  };
-
   const totalCashExpenses = getTotalCashExpenses();
   const totalIncomes = getTotalIncomes();
   const balance = getBalance();
 
-  // Dados para o gráfico comparativo
+  // Calcular total de gastos em cartões
+  const totalCardExpenses = cardExpenses
+    .filter(expense => {
+      const expenseDate = new Date(expense.billing_month);
+      return expenseDate.getMonth() === selectedMonth.getMonth() && 
+             expenseDate.getFullYear() === selectedMonth.getFullYear();
+    })
+    .reduce((sum, expense) => sum + Number(expense.amount), 0);
+
+  const totalExpenses = totalCardExpenses + totalCashExpenses;
+  const finalBalance = totalIncomes - totalExpenses;
+
+  // Dados para gráficos
   const compareData = [
     {
       name: 'Receitas',
@@ -59,7 +118,7 @@ const Dashboard = () => {
     },
     {
       name: 'Despesas Cartão',
-      value: mockData.totalExpenses,
+      value: totalCardExpenses,
       color: '#ef4444'
     },
     {
@@ -68,9 +127,6 @@ const Dashboard = () => {
       color: '#f59e0b'
     }
   ];
-
-  const totalExpenses = mockData.totalExpenses + totalCashExpenses;
-  const finalBalance = totalIncomes - totalExpenses;
 
   const balanceData = [
     {
@@ -117,6 +173,10 @@ const Dashboard = () => {
       </CardContent>
     </Card>
   );
+
+  if (showWelcome) {
+    return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -180,6 +240,27 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
+                {/* Indicador de atualização automática */}
+                {activeTickers > 0 && (
+                  <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${isUpdating ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
+                          <span className="text-sm text-blue-700 dark:text-blue-300">
+                            {isUpdating ? 'Atualizando ativos...' : `${activeTickers} ativos monitorados`}
+                          </span>
+                        </div>
+                        {lastUpdate && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400">
+                            Última atualização: {formatters.dateTime(lastUpdate)}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
                   <StatCard
                     title="Receitas"
@@ -191,7 +272,7 @@ const Dashboard = () => {
                   />
                   <StatCard
                     title="Gastos em Cartões"
-                    value={mockData.totalExpenses}
+                    value={totalCardExpenses}
                     icon={CreditCard}
                     trend="down"
                     trendValue={2.1}
@@ -205,7 +286,7 @@ const Dashboard = () => {
                   />
                   <StatCard
                     title="Total em Reservas"
-                    value={mockData.totalSavings}
+                    value={savingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0)}
                     icon={Target}
                     trend="up"
                     trendValue={8.5}
@@ -213,7 +294,7 @@ const Dashboard = () => {
                   />
                   <StatCard
                     title="Investimentos"
-                    value={mockData.totalInvestments}
+                    value={investments.reduce((sum, inv) => sum + (Number(inv.current_price) * inv.quantity), 0)}
                     icon={TrendingUp}
                     trend="up"
                     trendValue={12.3}
@@ -309,24 +390,24 @@ const Dashboard = () => {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <div>
-                        {selicLoading ? (
+                        {selicAutoLoading ? (
                           <Skeleton className="h-10 w-20" />
                         ) : (
                           <div className="text-3xl font-bold text-green-600">
-                            {selicData ? `${selicData.value.toFixed(2)}%` : 'N/A'}
+                            {selic ? `${selic.value.toFixed(2)}%` : 'N/A'}
                           </div>
                         )}
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                           Taxa básica de juros do Brasil
                         </p>
                       </div>
-                      {selicData && (
+                      {selic && (
                         <div className="text-right">
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Última atualização:
                           </p>
                           <p className="text-sm font-medium">
-                            {formatters.date(selicData.date)}
+                            {formatters.dateTime(selic.lastUpdate)}
                           </p>
                         </div>
                       )}
@@ -430,12 +511,33 @@ const Dashboard = () => {
     }
   };
 
+  const shouldShowSidebar = sidebarVisible || sidebarHovered || activeTab === 'dashboard';
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex relative">
       {/* Sidebar Navigation */}
-      <div className="w-64 flex-shrink-0">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <div 
+        className={`${shouldShowSidebar ? 'w-64' : 'w-0'} transition-all duration-300 flex-shrink-0 relative`}
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
+      >
+        <Navigation 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          isVisible={shouldShowSidebar}
+        />
       </div>
+
+      {/* Botão flutuante para mostrar navegação */}
+      {!shouldShowSidebar && (
+        <Button
+          onClick={() => setSidebarVisible(true)}
+          className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-700 shadow-lg"
+          size="sm"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 p-3 sm:p-6">
@@ -451,7 +553,7 @@ const Dashboard = () => {
               {activeTab === 'investments' && 'Investimentos'}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mt-1">
-              {user?.email && `Logado como: ${user.email}`}
+              Olá, <span className="font-medium">{getUserName()}</span>! 👋
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
