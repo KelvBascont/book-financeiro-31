@@ -380,17 +380,11 @@ const Cards = () => {
                     <SelectValue placeholder="Selecione o cartão" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cards.length > 0 ? (
-                      cards.map((card) => (
-                        <SelectItem key={card.id} value={card.id}>
-                          {card.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-cards" disabled>
-                        Nenhum cartão cadastrado
+                    {cards.map((card) => (
+                      <SelectItem key={card.id} value={card.id}>
+                        {card.name}
                       </SelectItem>
-                    )}
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
