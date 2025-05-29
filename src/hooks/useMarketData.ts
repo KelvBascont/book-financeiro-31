@@ -79,29 +79,49 @@ export const useMultipleStockQuotes = (tickers: string[]) => {
       if (!tickers || tickers.length === 0) return [];
       
       const uniqueTickers = [...new Set(tickers.filter(Boolean))];
-      const tickerString = uniqueTickers.join(',');
       
-      console.log(`Buscando cotações múltiplas para: ${tickerString}`);
+      console.log(`Buscando cotações individuais para: ${uniqueTickers.join(', ')}`);
       
-      const response = await fetch(
-        `${BRAPI_BASE_URL}/quote/${tickerString}?token=${BRAPI_TOKEN}`
-      );
+      // Fazer requisições individuais para cada ticker (plano gratuito BRAPI)
+      const quotes: StockQuote[] = [];
       
-      if (!response.ok) {
-        console.error(`Erro ao buscar cotações: ${response.status} - ${response.statusText}`);
-        throw new Error(`Erro ao buscar cotações: ${response.statusText}`);
+      for (const ticker of uniqueTickers) {
+        try {
+          console.log(`Buscando cotação individual para: ${ticker}`);
+          
+          const response = await fetch(
+            `${BRAPI_BASE_URL}/quote/${ticker}?token=${BRAPI_TOKEN}`
+          );
+          
+          if (!response.ok) {
+            console.error(`Erro ao buscar cotação para ${ticker}: ${response.status}`);
+            continue; // Pula para o próximo ticker em caso de erro
+          }
+          
+          const data: BrapiResponse = await response.json();
+          
+          if (data.results && data.results.length > 0) {
+            quotes.push(data.results[0]);
+            console.log(`Cotação obtida para ${ticker}: R$ ${data.results[0].regularMarketPrice}`);
+          }
+          
+          // Delay entre requisições para evitar rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (error) {
+          console.error(`Erro ao processar ${ticker}:`, error);
+          continue;
+        }
       }
       
-      const data: BrapiResponse = await response.json();
-      console.log('Cotações múltiplas recebidas:', data);
-      
-      return data.results || [];
+      console.log(`Total de cotações obtidas: ${quotes.length}/${uniqueTickers.length}`);
+      return quotes;
     },
     enabled: tickers && tickers.length > 0,
     staleTime: 60000, // 1 minuto
-    refetchInterval: 30000, // 30 segundos
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchInterval: false, // Desabilitar refetch automático para evitar muitas requisições
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 };
 
