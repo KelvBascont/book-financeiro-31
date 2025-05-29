@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, X, DollarSign, CreditCard, Target, TrendingUp, PiggyBank, Receipt } from 'lucide-react';
+import { Menu, DollarSign, CreditCard, Target, TrendingUp, PiggyBank, Receipt } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
@@ -17,7 +17,6 @@ import Investments from '@/components/Investments';
 import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
-import { useAssetUpdater } from '@/hooks/useAssetUpdater';
 import { useFormatters } from '@/hooks/useFormatters';
 
 const Dashboard = () => {
@@ -29,12 +28,6 @@ const Dashboard = () => {
   const { selectedMonth, getTotalIncomes, getTotalCashExpenses, getBalance } = useFinancial();
   const { cards, investments, vehicles, savingsGoals, cardExpenses } = useSupabaseTables();
   const formatters = useFormatters();
-
-  // Ativar atualizador de ativos
-  useAssetUpdater({
-    enabled: activeTab === 'investments' || activeTab === 'dashboard',
-    interval: 30000
-  });
 
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('finance_app_welcome_seen');
@@ -91,6 +84,13 @@ const Dashboard = () => {
     // Calcular total de financiamentos de veículos
     const totalVehicleFinancing = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
 
+    // Calcular gastos de cartão para o mês selecionado
+    const cardExpensesForMonth = cardExpenses.filter(expense => {
+      const expenseDate = new Date(expense.billing_month);
+      return expenseDate.getMonth() === selectedMonth.getMonth() && 
+             expenseDate.getFullYear() === selectedMonth.getFullYear();
+    }).reduce((sum, expense) => sum + expense.amount, 0);
+
     // Dados para gráfico de pizza - Distribuição de gastos
     const expenseData = [
       {
@@ -100,26 +100,22 @@ const Dashboard = () => {
       },
       {
         name: 'Cartões',
-        value: cardExpenses.filter(expense => {
-          const expenseDate = new Date(expense.billing_month);
-          return expenseDate.getMonth() === selectedMonth.getMonth() && 
-                 expenseDate.getFullYear() === selectedMonth.getFullYear();
-        }).reduce((sum, expense) => sum + expense.amount, 0),
+        value: cardExpensesForMonth,
         color: '#f97316'
       }
-    ];
+    ].filter(item => item.value > 0);
 
     // Dados para gráfico de barras - Receita vs Despesas
     const barData = [
       {
         name: 'Receitas',
         value: totalIncomes,
-        color: '#22c55e'
+        fill: '#22c55e'
       },
       {
         name: 'Despesas',
-        value: totalExpenses + expenseData[1].value,
-        color: '#ef4444'
+        value: totalExpenses + cardExpensesForMonth,
+        fill: '#ef4444'
       }
     ];
 
@@ -153,28 +149,28 @@ const Dashboard = () => {
               <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-sm text-red-600 dark:text-red-400 font-medium">Despesas</p>
                 <p className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-300">
-                  {formatters.currency(totalExpenses + expenseData[1].value)}
+                  {formatters.currency(totalExpenses + cardExpensesForMonth)}
                 </p>
               </div>
               
               <div className={`text-center p-4 rounded-lg ${
-                balance >= 0 
+                (balance - cardExpensesForMonth) >= 0 
                   ? 'bg-blue-50 dark:bg-blue-900/20' 
                   : 'bg-red-50 dark:bg-red-900/20'
               }`}>
                 <p className={`text-sm font-medium ${
-                  balance >= 0 
+                  (balance - cardExpensesForMonth) >= 0 
                     ? 'text-blue-600 dark:text-blue-400' 
                     : 'text-red-600 dark:text-red-400'
                 }`}>
                   Saldo do Mês
                 </p>
                 <p className={`text-xl sm:text-2xl font-bold ${
-                  balance >= 0 
+                  (balance - cardExpensesForMonth) >= 0 
                     ? 'text-blue-700 dark:text-blue-300' 
                     : 'text-red-700 dark:text-red-300'
                 }`}>
-                  {formatters.currency(Math.abs(balance - expenseData[1].value))}
+                  {formatters.currency(balance - cardExpensesForMonth)}
                 </p>
               </div>
               
@@ -199,7 +195,7 @@ const Dashboard = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={expenseData.filter(item => item.value > 0)}
+                    data={expenseData}
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
@@ -215,6 +211,11 @@ const Dashboard = () => {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+              {expenseData.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhuma despesa registrada para este mês
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -230,11 +231,7 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
                   <Tooltip formatter={(value) => formatters.currency(Number(value))} />
-                  <Bar dataKey="value">
-                    {barData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                    </Bar>
+                  <Bar dataKey="value" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

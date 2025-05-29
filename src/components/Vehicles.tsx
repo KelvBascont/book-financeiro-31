@@ -1,27 +1,31 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Car, Calendar, DollarSign, TrendingUp, CheckCircle, Circle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Plus, Car, Calendar, DollarSign, TrendingUp, CheckCircle, Circle, Eye, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
 import CrudActions from '@/components/CrudActions';
-import { useAuth } from '@/contexts/AuthContext'; // Importe o contexto de autenticação
 
 const Vehicles = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddVehicle, setShowAddVehicle] = useState(false);
-  const { user } = useAuth(); // Obtenha o usuário logado
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [showPayments, setShowPayments] = useState(false);
   
   const {
     vehicles,
+    vehiclePayments,
     addVehicle,
+    updateVehicle,
     deleteVehicle,
+    updateVehiclePayment,
     loading
   } = useSupabaseTables();
   
@@ -31,7 +35,7 @@ const Vehicles = () => {
     installments: '',
     start_date: '',
     installment_value: '',
-    paid_installments: '0' // Valor padrão 0
+    paid_installments: '0'
   });
 
   const handleAddVehicle = async () => {
@@ -55,8 +59,7 @@ const Vehicles = () => {
       installments: installments,
       start_date: vehicleForm.start_date,
       installment_value: installmentValue,
-      paid_installments: paidInstallments, // Nova coluna
-      user_id: user?.id || '' // Garantir que o user_id está presente
+      paid_installments: paidInstallments
     });
 
     if (result) {
@@ -77,29 +80,25 @@ const Vehicles = () => {
   };
 
   const updatePaidInstallments = async (vehicleId: string, newPaidInstallments: number) => {
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const { error } = await supabase
-        .from('vehicles')
-        .update({ paid_installments: newPaidInstallments })
-        .eq('id', vehicleId);
+    await updateVehicle(vehicleId, { paid_installments: newPaidInstallments });
+  };
 
-      if (error) throw error;
+  const markPaymentAsPaid = async (paymentId: string, vehicleId: string) => {
+    const payment = vehiclePayments.find(p => p.id === paymentId);
+    if (!payment) return;
 
-      toast({
-        title: "Atualizado",
-        description: "Parcelas pagas atualizadas com sucesso"
-      });
-      
-      // Refresh data
-      window.location.reload();
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar parcelas pagas",
-        variant: "destructive"
-      });
+    await updateVehiclePayment(paymentId, {
+      is_paid: true,
+      paid_date: new Date().toISOString().split('T')[0]
+    });
+
+    // Atualizar o veículo também
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (vehicle) {
+      const paidCount = vehiclePayments.filter(p => 
+        p.vehicle_id === vehicleId && (p.is_paid || p.id === paymentId)
+      ).length;
+      await updateVehicle(vehicleId, { paid_installments: paidCount });
     }
   };
 
@@ -117,6 +116,30 @@ const Vehicles = () => {
       paidAmount,
       isCompleted: paidInstallments >= totalInstallments
     };
+  };
+
+  const getUpcomingPayments = () => {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+    
+    return vehiclePayments
+      .filter(payment => {
+        const dueDate = new Date(payment.due_date);
+        return !payment.is_paid && dueDate >= today && dueDate <= thirtyDaysFromNow;
+      })
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .slice(0, 5);
+  };
+
+  const getVehiclePayments = (vehicleId: string) => {
+    return vehiclePayments
+      .filter(payment => payment.vehicle_id === vehicleId)
+      .sort((a, b) => a.installment_number - b.installment_number);
+  };
+
+  const getNextPayment = (vehicleId: string) => {
+    const payments = getVehiclePayments(vehicleId);
+    return payments.find(payment => !payment.is_paid);
   };
 
   const getTotalInvested = () => {
@@ -144,6 +167,8 @@ const Vehicles = () => {
       </div>
     );
   }
+
+  const upcomingPayments = getUpcomingPayments();
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -198,6 +223,46 @@ const Vehicles = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Parcelas próximas ao vencimento */}
+      {upcomingPayments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Parcelas Próximas ao Vencimento (30 dias)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {upcomingPayments.map((payment) => {
+                const vehicle = vehicles.find(v => v.id === payment.vehicle_id);
+                const daysUntilDue = Math.ceil((new Date(payment.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                return (
+                  <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                    <div>
+                      <p className="font-medium">{vehicle?.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Parcela {payment.installment_number} - Vence em {daysUntilDue} dias ({formatters.date(payment.due_date)})
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">{formatters.currency(vehicle?.installment_value || 0)}</p>
+                      <Button
+                        size="sm"
+                        onClick={() => markPaymentAsPaid(payment.id, payment.vehicle_id)}
+                        className="mt-1"
+                      >
+                        Marcar como Pago
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showAddVehicle && (
         <Card>
@@ -294,6 +359,7 @@ const Vehicles = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {vehicles.map((vehicle) => {
           const { paidInstallments, progress, remainingAmount, paidAmount, isCompleted } = calculateProgress(vehicle);
+          const nextPayment = getNextPayment(vehicle.id);
           
           return (
             <Card key={vehicle.id} className="relative overflow-hidden">
@@ -339,55 +405,49 @@ const Vehicles = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progresso</span>
-                    <span>{paidInstallments}/{vehicle.installments} parcelas</span>
-                  </div>
-                  <Progress value={progress} className="h-3" />
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center">{progress.toFixed(1)}% concluído</p>
-                </div>
-
-                {/* Controle de parcelas pagas */}
-                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Controle de Parcelas</span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updatePaidInstallments(vehicle.id, Math.max(0, paidInstallments - 1))}
-                        disabled={paidInstallments <= 0}
-                      >
-                        -
-                      </Button>
-                      <span className="text-sm font-bold px-2">{paidInstallments}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updatePaidInstallments(vehicle.id, Math.min(vehicle.installments, paidInstallments + 1))}
-                        disabled={paidInstallments >= vehicle.installments}
-                      >
-                        +
-                      </Button>
+                {/* Próximo vencimento */}
+                {nextPayment && (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-yellow-600" />
+                        <span className="text-sm font-medium">Próximo Vencimento</span>
+                      </div>
+                      <span className="text-sm font-bold">
+                        Parcela {nextPayment.installment_number} - {formatters.date(nextPayment.due_date)}
+                      </span>
                     </div>
                   </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedVehicle(vehicle);
+                      setShowPayments(true);
+                    }}
+                    className="flex-1"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Ver Todas as Parcelas
+                  </Button>
                   
-                  <div className="flex items-center gap-2 text-xs">
-                    {isCompleted ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span className={isCompleted ? "text-green-600 font-medium" : "text-gray-600"}>
-                      {isCompleted ? "Financiamento quitado!" : `Restam ${vehicle.installments - paidInstallments} parcelas`}
-                    </span>
-                  </div>
+                  {!isCompleted && nextPayment && (
+                    <Button
+                      size="sm"
+                      onClick={() => markPaymentAsPaid(nextPayment.id, vehicle.id)}
+                      className="flex-1"
+                    >
+                      Dar Baixa
+                    </Button>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-yellow-600" />
+                    <Calendar className="h-4 w-4 text-blue-600" />
                     <span className="text-sm font-medium">Início do financiamento</span>
                   </div>
                   <span className="text-sm font-bold">
@@ -407,6 +467,60 @@ const Vehicles = () => {
           </div>
         )}
       </div>
+
+      {/* Dialog para mostrar todas as parcelas */}
+      <Dialog open={showPayments} onOpenChange={setShowPayments}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Parcelas - {selectedVehicle?.description}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedVehicle && getVehiclePayments(selectedVehicle.id).map((payment) => (
+              <div
+                key={payment.id}
+                className={`flex items-center justify-between p-4 border rounded-lg ${
+                  payment.is_paid 
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200' 
+                    : 'bg-white dark:bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {payment.is_paid ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium">Parcela {payment.installment_number}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Vencimento: {formatters.date(payment.due_date)}
+                      {payment.paid_date && (
+                        <span className="ml-2 text-green-600">
+                          • Pago em {formatters.date(payment.paid_date)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{formatters.currency(selectedVehicle.installment_value)}</p>
+                  {!payment.is_paid && (
+                    <Button
+                      size="sm"
+                      onClick={() => markPaymentAsPaid(payment.id, selectedVehicle.id)}
+                      className="mt-1"
+                    >
+                      Marcar como Pago
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

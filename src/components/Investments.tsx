@@ -1,67 +1,41 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, TrendingUp, TrendingDown, DollarSign, RefreshCw, Activity, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useStockQuote, useSelicRate, useMultipleStockQuotes } from '@/hooks/useMarketData';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useMarketData } from '@/hooks/useMarketData';
 import CrudActions from '@/components/CrudActions';
-import { useAuth } from '@/contexts/AuthContext'; // Adicione esta importação
 
 const Investments = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddInvestment, setShowAddInvestment] = useState(false);
-  const { user } = useAuth(); // Obtenha o usuário logado
+  const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
   
   const {
     investments,
     addInvestment,
+    updateInvestment,
     deleteInvestment,
-    updateInvestment, // ← Adicione esta linha
-    fetchInvestments, // Certifique-se que esta função está disponível no hook
     loading
   } = useSupabaseTables();
+
+  const { updatePrices } = useMarketData();
   
   const [investmentForm, setInvestmentForm] = useState({
     ticker: '',
-    average_price: '',
     quantity: '',
+    average_price: ''
   });
 
-  const tickers = investments.map(inv => inv.ticker);
-  const { data: stockQuotes, isLoading: quotesLoading, refetch: refetchQuotes } = useMultipleStockQuotes(tickers);
-  const { data: selicData, isLoading: selicLoading } = useSelicRate();
-
-  // Atualizar investimentos quando o usuário mudar
-useEffect(() => {
-  const updateInvestmentPrices = async () => {
-    if (!stockQuotes || !investments.length) return;
-    
-    const updatePromises = investments.map(async (investment) => {
-      const quote = stockQuotes.find(q => q.symbol === investment.ticker);
-      if (quote && quote.regularMarketPrice !== investment.current_price) {
-        await updateInvestment(investment.id, {
-          current_price: quote.regularMarketPrice,
-          updated_at: new Date().toISOString()
-        });
-      }
-    });
-
-    await Promise.all(updatePromises);
-    fetchInvestments(); // Atualiza a lista local
-  };
-
-  updateInvestmentPrices();
-}, [stockQuotes]); // Executa sempre que as cotações mudarem
-
   const handleAddInvestment = async () => {
-    if (!investmentForm.ticker || !investmentForm.average_price || !investmentForm.quantity) {
+    if (!investmentForm.ticker || !investmentForm.quantity || !investmentForm.average_price) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -72,161 +46,220 @@ useEffect(() => {
     
     const result = await addInvestment({
       ticker: investmentForm.ticker.toUpperCase(),
-      average_price: parseFloat(investmentForm.average_price),
       quantity: parseInt(investmentForm.quantity),
-      current_price: 0,
-      user_id: user?.id || '' // Adicione o user_id obrigatório
+      average_price: parseFloat(investmentForm.average_price),
+      current_price: parseFloat(investmentForm.average_price) // Inicialmente igual ao preço médio
     });
 
     if (result) {
-      setInvestmentForm({ ticker: '', average_price: '', quantity: '' });
+      setInvestmentForm({ ticker: '', quantity: '', average_price: '' });
       setShowAddInvestment(false);
-      fetchInvestments(); // Atualize a lista de investimentos
-      refetchQuotes(); // Atualize as cotações
-      toast({
-        title: "Sucesso!",
-        description: "Investimento adicionado com sucesso",
-      });
     }
   };
 
   const handleDeleteInvestment = async (id: string) => {
     await deleteInvestment(id);
-    fetchInvestments(); // Atualize a lista após exclusão
-    refetchQuotes(); // Atualize as cotações
   };
 
-  const updatePrices = () => {
-    refetchQuotes();
-    toast({
-      title: "Preços atualizados!",
-      description: "Todas as cotações foram atualizadas",
-    });
-  };
-
-  const calculateGain = (averagePrice: number, currentPrice: number, quantity: number) => {
-    const invested = averagePrice * quantity;
-    const currentValue = currentPrice * quantity;
-    const gain = currentValue - invested;
-    const gainPercentage = ((currentPrice - averagePrice) / averagePrice) * 100;
-    
-    return { gain, gainPercentage, invested, currentValue };
-  };
-
-  const getTotalPortfolio = () => {
-    let totalInvested = 0;
-    let totalCurrent = 0;
-    
-    investments.forEach(investment => {
-      const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
-      if (quote) {
-        const { invested, currentValue } = calculateGain(
-          investment.average_price,
-          quote.regularMarketPrice,
-          investment.quantity
-        );
-        totalInvested += invested;
-        totalCurrent += currentValue;
+  const handleUpdatePrices = async () => {
+    setIsUpdatingPrices(true);
+    try {
+      const tickers = [...new Set(investments.map(inv => inv.ticker))];
+      const prices = await updatePrices(tickers);
+      
+      // Atualizar cada investimento com o novo preço e timestamp
+      for (const investment of investments) {
+        const newPrice = prices[investment.ticker];
+        if (newPrice !== undefined) {
+          await updateInvestment(investment.id, {
+            current_price: newPrice,
+            last_manual_update: new Date().toISOString()
+          });
+        }
       }
-    });
-    
-    const totalGain = totalCurrent - totalInvested;
-    const totalGainPercentage = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
-    
-    return { totalInvested, totalCurrent, totalGain, totalGainPercentage };
+      
+      toast({
+        title: "Sucesso",
+        description: "Preços atualizados com sucesso!"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar preços. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingPrices(false);
+    }
   };
 
-  const portfolioSummary = getTotalPortfolio();
+  const calculateTotals = () => {
+    const totalInvested = investments.reduce((sum, inv) => sum + (inv.quantity * inv.average_price), 0);
+    const currentValue = investments.reduce((sum, inv) => sum + (inv.quantity * inv.current_price), 0);
+    const totalGainLoss = currentValue - totalInvested;
+    const totalGainLossPercentage = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+    
+    return {
+      totalInvested,
+      currentValue,
+      totalGainLoss,
+      totalGainLossPercentage
+    };
+  };
 
-  if (loading || selicLoading) {
+  const getLastUpdateInfo = () => {
+    const lastUpdates = investments
+      .filter(inv => inv.last_manual_update)
+      .map(inv => new Date(inv.last_manual_update!))
+      .sort((a, b) => b.getTime() - a.getTime());
+    
+    return lastUpdates.length > 0 ? lastUpdates[0] : null;
+  };
+
+  if (loading) {
     return (
       <div className="p-6 space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
     );
   }
+
+  const totals = calculateTotals();
+  const lastUpdate = getLastUpdateInfo();
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Carteira de Investimentos</h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Acompanhe a performance dos seus ativos</p>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Acompanhe seus investimentos em ações</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button 
-            onClick={updatePrices} 
+            onClick={handleUpdatePrices} 
+            disabled={isUpdatingPrices || investments.length === 0}
             variant="outline" 
             className="w-full sm:w-auto"
-            disabled={quotesLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${quotesLoading ? 'animate-spin' : ''}`} />
-            Atualizar Preços
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdatingPrices ? 'animate-spin' : ''}`} />
+            {isUpdatingPrices ? 'Atualizando...' : 'Atualizar Preços'}
           </Button>
-          <Button 
-            onClick={() => setShowAddInvestment(!showAddInvestment)} 
-            className="bg-blue-500 hover:bg-blue-600 w-full sm:w-auto"
-          >
+          <Button onClick={() => setShowAddInvestment(!showAddInvestment)} className="bg-blue-500 hover:bg-blue-600 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Novo Investimento
           </Button>
         </div>
       </div>
 
-      {/* Taxa SELIC */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
+      {/* Última atualização manual */}
+      {lastUpdate && (
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-blue-800 dark:text-blue-200">
+                Última atualização manual: {formatters.dateTime(lastUpdate)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Resumo da carteira */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Taxa SELIC</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Taxa básica de juros</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total Investido</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatters.currency(totals.totalInvested)}
+                </p>
               </div>
+              <DollarSign className="h-8 w-8 text-blue-500" />
             </div>
-            <div className="text-right">
-              {selicLoading ? (
-                <Skeleton className="h-6 w-16" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Valor Atual</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatters.currency(totals.currentValue)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Ganho/Perda</p>
+                <p className={`text-2xl font-bold ${
+                  totals.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatters.currency(Math.abs(totals.totalGainLoss))}
+                </p>
+              </div>
+              {totals.totalGainLoss >= 0 ? (
+                <TrendingUp className="h-8 w-8 text-green-500" />
               ) : (
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                  {selicData ? `${selicData.value.toFixed(2)}%` : 'N/A'}
-                </p>
-              )}
-              {selicData && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatters.date(selicData.date)}
-                </p>
+                <TrendingDown className="h-8 w-8 text-red-500" />
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Rentabilidade</p>
+                <p className={`text-2xl font-bold ${
+                  totals.totalGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {totals.totalGainLossPercentage >= 0 ? '+' : ''}{formatters.percentage(totals.totalGainLossPercentage)}
+                </p>
+              </div>
+              <Percent className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {showAddInvestment && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Cadastrar Novo Investimento
+              Adicionar Novo Investimento
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="ticker">Ticker/Código *</Label>
+                <Label htmlFor="ticker">Ticker *</Label>
                 <Input
                   id="ticker"
-                  placeholder="Ex: PETR4, MXRF11"
+                  placeholder="Ex: PETR4, VALE3..."
                   value={investmentForm.ticker}
                   onChange={(e) => setInvestmentForm({ ...investmentForm, ticker: e.target.value.toUpperCase() })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="quantity">Quantidade *</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  placeholder="100"
+                  value={investmentForm.quantity}
+                  onChange={(e) => setInvestmentForm({ ...investmentForm, quantity: e.target.value })}
                 />
               </div>
               <div>
@@ -235,217 +268,100 @@ useEffect(() => {
                   id="averagePrice"
                   type="number"
                   step="0.01"
-                  placeholder="0,00"
+                  placeholder="25,50"
                   value={investmentForm.average_price}
                   onChange={(e) => setInvestmentForm({ ...investmentForm, average_price: e.target.value })}
                 />
               </div>
-              <div>
-                <Label htmlFor="quantity">Quantidade *</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  placeholder="0"
-                  value={investmentForm.quantity}
-                  onChange={(e) => setInvestmentForm({ ...investmentForm, quantity: e.target.value })}
-                />
-              </div>
             </div>
+            
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="outline" onClick={() => setShowAddInvestment(false)} className="w-full sm:w-auto">
                 Cancelar
               </Button>
               <Button onClick={handleAddInvestment} className="bg-blue-500 hover:bg-blue-600 w-full sm:w-auto">
-                Cadastrar Investimento
+                Adicionar Investimento
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Resumo do Portfólio */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Investido</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+          <CardHeader>
+            <CardTitle>Posições em Carteira</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-2xl font-bold">
-              {formatters.currencyCompact(portfolioSummary.totalInvested)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Valor Atual</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg sm:text-2xl font-bold">
-              {formatters.currencyCompact(portfolioSummary.totalCurrent)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Ganho/Perda</CardTitle>
-            {portfolioSummary.totalGain >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-lg sm:text-2xl font-bold ${portfolioSummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {portfolioSummary.totalGain >= 0 ? '+' : ''}{formatters.currencyCompact(portfolioSummary.totalGain)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Rentabilidade</CardTitle>
-            {portfolioSummary.totalGainPercentage >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-lg sm:text-2xl font-bold ${portfolioSummary.totalGainPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {portfolioSummary.totalGainPercentage >= 0 ? '+' : ''}{formatters.percentage(portfolioSummary.totalGainPercentage)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de Investimentos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Minha Carteira</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {investments.map((investment) => {
-              const quote = stockQuotes?.find(q => q.symbol === investment.ticker);
-              
-              if (quotesLoading) {
+            <div className="space-y-3">
+              {investments.map((investment) => {
+                const totalInvested = investment.quantity * investment.average_price;
+                const currentValue = investment.quantity * investment.current_price;
+                const gainLoss = currentValue - totalInvested;
+                const gainLossPercentage = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
+                
                 return (
-                  <div key={investment.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <Skeleton className="w-12 h-12 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                  </div>
-                );
-              }
-
-              if (!quote) {
-                return (
-                  <div key={investment.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="flex items-center justify-between">
+                  <div key={investment.id} className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                          <span className="font-bold text-gray-500 text-sm">{investment.ticker}</span>
-                        </div>
-                        <div>
-                          <p className="font-bold text-lg">{investment.ticker}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">{investment.ticker}</h3>
+                            <Badge className={gainLoss >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                              {gainLoss >= 0 ? '+' : ''}{formatters.percentage(gainLossPercentage)}
+                            </Badge>
+                          </div>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.average_price)}
+                            {investment.quantity} ações • Preço médio: {formatters.currency(investment.average_price)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">Sem dados</Badge>
-                        <CrudActions
-                          item={investment}
-                          onDelete={() => handleDeleteInvestment(investment.id)}
-                          showEdit={false}
-                          showView={false}
-                          deleteTitle="Confirmar remoção"
-                          deleteDescription="Tem certeza que deseja remover este investimento?"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              const { gain, gainPercentage, invested, currentValue } = calculateGain(
-                investment.average_price,
-                quote.regularMarketPrice,
-                investment.quantity
-              );
-              
-              return (
-                <div key={investment.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">{investment.ticker}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-lg truncate">{quote.shortName || investment.ticker}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatters.number(investment.quantity)} cotas • Preço médio: {formatters.currency(investment.average_price)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Atual: {formatters.currency(quote.regularMarketPrice)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                      <div className="text-center sm:text-right">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">Investido</p>
-                        <p className="font-bold">{formatters.currency(invested)}</p>
+                      
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Preço Atual</p>
+                          <p className="font-bold">{formatters.currency(investment.current_price)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Total Investido</p>
+                          <p className="font-bold">{formatters.currency(totalInvested)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Valor Atual</p>
+                          <p className="font-bold">{formatters.currency(currentValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Ganho/Perda</p>
+                          <p className={`font-bold ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {gainLoss >= 0 ? '+' : ''}{formatters.currency(Math.abs(gainLoss))}
+                          </p>
+                        </div>
                       </div>
                       
-                      <div className="text-center sm:text-right">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">Valor Atual</p>
-                        <p className="font-bold">{formatters.currency(currentValue)}</p>
-                      </div>
-                      
-                      <div className="text-center sm:text-right">
-                        <Badge variant={gain >= 0 ? "default" : "destructive"} className="mb-2">
-                          {gain >= 0 ? '+' : ''}{formatters.currency(Math.abs(gain))}
-                        </Badge>
-                        <p className={`font-bold text-sm ${gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {gainPercentage >= 0 ? '+' : ''}{formatters.percentage(gainPercentage)}
-                        </p>
-                      </div>
-
                       <CrudActions
                         item={investment}
                         onDelete={() => handleDeleteInvestment(investment.id)}
                         showEdit={false}
                         showView={false}
-                        deleteTitle="Confirmar remoção"
-                        deleteDescription="Tem certeza que deseja remover este investimento?"
+                        deleteTitle="Confirmar exclusão"
+                        deleteDescription="Esta ação não pode ser desfeita. O investimento será permanentemente removido."
                       />
                     </div>
                   </div>
+                );
+              })}
+              
+              {investments.length === 0 && (
+                <div className="text-center py-12">
+                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhum investimento cadastrado</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Novo Investimento" para começar</p>
                 </div>
-              );
-            })}
-
-            {investments.length === 0 && (
-              <div className="text-center py-8">
-                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">Nenhum investimento cadastrado</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Novo Investimento" para começar</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -164,6 +164,7 @@ export type Database = {
           created_at: string | null
           current_price: number | null
           id: string
+          last_manual_update: string | null
           quantity: number
           ticker: string
           updated_at: string | null
@@ -174,6 +175,7 @@ export type Database = {
           created_at?: string | null
           current_price?: number | null
           id?: string
+          last_manual_update?: string | null
           quantity: number
           ticker: string
           updated_at?: string | null
@@ -184,6 +186,7 @@ export type Database = {
           created_at?: string | null
           current_price?: number | null
           id?: string
+          last_manual_update?: string | null
           quantity?: number
           ticker?: string
           updated_at?: string | null
@@ -316,6 +319,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_vehicle_payments_vehicle_id"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vehicle_payments_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -331,6 +341,7 @@ export type Database = {
           id: string
           installment_value: number
           installments: number
+          paid_installments: number
           start_date: string
           total_amount: number
           user_id: string
@@ -341,6 +352,7 @@ export type Database = {
           id?: string
           installment_value: number
           installments: number
+          paid_installments?: number
           start_date: string
           total_amount: number
           user_id: string
@@ -351,6 +363,7 @@ export type Database = {
           id?: string
           installment_value?: number
           installments?: number
+          paid_installments?: number
           start_date?: string
           total_amount?: number
           user_id?: string

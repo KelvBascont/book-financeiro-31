@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,12 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, CreditCard, Calendar, AlertCircle, Edit, TrendingUp } from 'lucide-react';
+import { Plus, CreditCard, Calendar, AlertCircle, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import CrudActions from '@/components/CrudActions';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Cards = () => {
   const { toast } = useToast();
@@ -18,7 +18,6 @@ const Cards = () => {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [editingCard, setEditingCard] = useState<any>(null);
-  const { user } = useAuth();
   
   const {
     cards,
@@ -26,6 +25,7 @@ const Cards = () => {
     addCard,
     updateCard,
     deleteCard,
+    addCardExpense,
     loading
   } = useSupabaseTables();
   
@@ -115,36 +115,22 @@ const Cards = () => {
     }
 
     const selectedCard = cards.find(c => c.id === expenseForm.card_id);
-    if (!selectedCard || !user) return;
+    if (!selectedCard) return;
 
     const billingMonth = calculateBillingMonth(expenseForm.purchase_date, selectedCard.closing_date);
     
-    const expenseData = {
+    const result = await addCardExpense({
       card_id: expenseForm.card_id,
       description: expenseForm.description,
       amount: parseFloat(expenseForm.amount),
       purchase_date: expenseForm.purchase_date,
       billing_month: billingMonth,
       is_installment: expenseForm.is_installment,
-      installments: expenseForm.is_installment ? parseInt(expenseForm.installments) : null,
-      current_installment: expenseForm.is_installment ? 1 : null,
-      user_id: user.id
-    };
+      installments: expenseForm.is_installment ? parseInt(expenseForm.installments) : undefined,
+      current_installment: expenseForm.is_installment ? 1 : undefined
+    });
 
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const { error } = await supabase
-        .from('card_expenses')
-        .insert([expenseData]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Despesa registrada!",
-        description: `Despesa de ${formatters.currency(parseFloat(expenseForm.amount))} foi adicionada`,
-      });
-      
+    if (result) {
       setExpenseForm({ 
         card_id: '', 
         purchase_date: '', 
@@ -155,12 +141,6 @@ const Cards = () => {
         billing_month: ''
       });
       setShowAddExpense(false);
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao registrar despesa",
-        variant: "destructive"
-      });
     }
   };
 
@@ -171,10 +151,10 @@ const Cards = () => {
     
     if (purchase.getDate() > closingDate) {
       const billingMonth = new Date(year, month + 2, 1);
-      return billingMonth.toISOString();
+      return billingMonth.toISOString().split('T')[0];
     } else {
       const billingMonth = new Date(year, month + 1, 1);
-      return billingMonth.toISOString();
+      return billingMonth.toISOString().split('T')[0];
     }
   };
 

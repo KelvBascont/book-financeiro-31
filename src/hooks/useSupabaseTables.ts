@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,7 @@ export interface Investment {
   current_price: number;
   created_at: string;
   updated_at: string;
+  last_manual_update?: string;
 }
 
 export interface Vehicle {
@@ -46,8 +48,18 @@ export interface Vehicle {
   installment_value: number;
   start_date: string;
   created_at: string;
-  paid_installments: number; // Nova propriedade
+  paid_installments: number;
+}
 
+export interface VehiclePayment {
+  id: string;
+  user_id: string;
+  vehicle_id: string;
+  installment_number: number;
+  due_date: string;
+  is_paid: boolean;
+  paid_date?: string;
+  created_at: string;
 }
 
 export interface SavingsGoal {
@@ -79,6 +91,7 @@ export const useSupabaseTables = () => {
   const [cardExpenses, setCardExpenses] = useState<CardExpense[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehiclePayments, setVehiclePayments] = useState<VehiclePayment[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [savingsTransactions, setSavingsTransactions] = useState<SavingsTransaction[]>([]);
 
@@ -165,6 +178,28 @@ export const useSupabaseTables = () => {
       toast({
         title: "Erro",
         description: "Erro ao carregar veículos",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fetch Vehicle Payments
+  const fetchVehiclePayments = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+      setVehiclePayments(data || []);
+    } catch (error) {
+      console.error('Error fetching vehicle payments:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar parcelas de veículos",
         variant: "destructive"
       });
     }
@@ -370,6 +405,29 @@ export const useSupabaseTables = () => {
     }
   };
 
+  const updateInvestment = async (id: string, updates: Partial<Investment>) => {
+    try {
+      const { data, error } = await supabase
+        .from('investments')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setInvestments(prev => prev.map(inv => inv.id === id ? data : inv));
+      return data;
+    } catch (error) {
+      console.error('Error updating investment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar investimento",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteInvestment = async (id: string) => {
     try {
       const { error } = await supabase
@@ -421,6 +479,33 @@ export const useSupabaseTables = () => {
     }
   };
 
+  const updateVehicle = async (id: string, updates: Partial<Vehicle>) => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setVehicles(prev => prev.map(vehicle => vehicle.id === id ? data : vehicle));
+      toast({
+        title: "Sucesso",
+        description: "Veículo atualizado com sucesso"
+      });
+      return data;
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar veículo",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteVehicle = async (id: string) => {
     try {
       const { error } = await supabase
@@ -440,6 +525,34 @@ export const useSupabaseTables = () => {
       toast({
         title: "Erro",
         description: "Erro ao remover veículo",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // CRUD Operations for Vehicle Payments
+  const updateVehiclePayment = async (id: string, updates: Partial<VehiclePayment>) => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_payments')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setVehiclePayments(prev => prev.map(payment => payment.id === id ? data : payment));
+      toast({
+        title: "Sucesso",
+        description: "Parcela atualizada com sucesso"
+      });
+      return data;
+    } catch (error) {
+      console.error('Error updating vehicle payment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar parcela",
         variant: "destructive"
       });
     }
@@ -559,30 +672,6 @@ export const useSupabaseTables = () => {
     }
   };
 
-  // Adicione esta função para atualizar investimentos
-  const updateInvestment = async (id: string, updates: Partial<Investment>) => {
-    try {
-      const { data, error } = await supabase
-        .from('investments')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', user?.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      setInvestments(prev => prev.map(inv => inv.id === id ? data : inv));
-      return data;
-    } catch (error) {
-      console.error('Error updating investment:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar investimento",
-        variant: "destructive"
-      });
-    }
-  };
-
   // Load initial data
   useEffect(() => {
     const loadAllData = async () => {
@@ -593,6 +682,7 @@ export const useSupabaseTables = () => {
           fetchCardExpenses(),
           fetchInvestments(),
           fetchVehicles(),
+          fetchVehiclePayments(),
           fetchSavingsGoals(),
           fetchSavingsTransactions()
         ]);
@@ -609,6 +699,7 @@ export const useSupabaseTables = () => {
     cardExpenses,
     investments,
     vehicles,
+    vehiclePayments,
     savingsGoals,
     savingsTransactions,
     loading,
@@ -621,10 +712,11 @@ export const useSupabaseTables = () => {
     deleteCardExpense,
     addInvestment,
     updateInvestment,
-    fetchInvestments, // ← Adicione esta linha
     deleteInvestment,
     addVehicle,
+    updateVehicle,
     deleteVehicle,
+    updateVehiclePayment,
     addSavingsGoal,
     updateSavingsGoal,
     deleteSavingsGoal,
@@ -636,6 +728,7 @@ export const useSupabaseTables = () => {
       fetchCardExpenses(),
       fetchInvestments(),
       fetchVehicles(),
+      fetchVehiclePayments(),
       fetchSavingsGoals(),
       fetchSavingsTransactions()
     ])

@@ -116,6 +116,36 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Update Cash Expense
+  const updateCashExpense = async (id: string, updates: Partial<CashExpense>) => {
+    try {
+      const { data, error } = await supabase
+        .from('cash_expenses')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCashExpenses(prev => prev.map(expense => expense.id === id ? data : expense));
+      toast({
+        title: "Sucesso",
+        description: "Despesa atualizada com sucesso"
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('Error updating cash expense:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar despesa",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Add Income
   const addIncome = async (income: Omit<Income, 'id' | 'user_id'>) => {
     if (!user) return;
@@ -147,6 +177,41 @@ export const useSupabaseData = () => {
       toast({
         title: "Erro",
         description: "Erro ao adicionar receita",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update Income
+  const updateIncome = async (id: string, updates: Partial<Income>) => {
+    try {
+      const { data, error } = await supabase
+        .from('incomes')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const typedIncome: Income = {
+        ...data,
+        type: data.type as 'salary' | 'bonus' | 'investment' | 'other'
+      };
+      
+      setIncomes(prev => prev.map(income => income.id === id ? typedIncome : income));
+      toast({
+        title: "Sucesso",
+        description: "Receita atualizada com sucesso"
+      });
+      
+      return typedIncome;
+    } catch (error) {
+      console.error('Error updating income:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar receita",
         variant: "destructive"
       });
     }
@@ -220,7 +285,9 @@ export const useSupabaseData = () => {
     incomes,
     loading,
     addCashExpense,
+    updateCashExpense,
     addIncome,
+    updateIncome,
     deleteCashExpense,
     deleteIncome,
     refreshData: () => Promise.all([fetchCashExpenses(), fetchIncomes()])
