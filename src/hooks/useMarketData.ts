@@ -106,7 +106,7 @@ export const useMultipleStockQuotes = (tickers: string[]) => {
           }
           
           // Delay entre requisições para evitar rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
         } catch (error) {
           console.error(`Erro ao processar ${ticker}:`, error);
