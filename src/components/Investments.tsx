@@ -38,7 +38,7 @@ const Investments = () => {
     if (!investmentForm.ticker || !investmentForm.quantity || !investmentForm.average_price) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha todos os campos obrigatórios!",
         variant: "destructive"
       });
       return;
