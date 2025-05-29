@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, CreditCard, Calendar, AlertCircle, TrendingUp } from 'lucide-react';
+import { Plus, CreditCard, Calendar, AlertCircle, TrendingUp, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
@@ -17,7 +16,10 @@ const Cards = () => {
   const formatters = useFormatters();
   const [showAddCard, setShowAddCard] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showEditExpense, setShowEditExpense] = useState(false);
   const [editingCard, setEditingCard] = useState<any>(null);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [selectedCardFilter, setSelectedCardFilter] = useState<string>('');
   
   const {
     cards,
@@ -26,6 +28,8 @@ const Cards = () => {
     updateCard,
     deleteCard,
     addCardExpense,
+    updateCardExpense,
+    deleteCardExpense,
     loading
   } = useSupabaseTables();
   
@@ -42,6 +46,13 @@ const Cards = () => {
     amount: '',
     is_installment: false,
     installments: '',
+    billing_month: ''
+  });
+
+  const [editExpenseForm, setEditExpenseForm] = useState({
+    purchase_date: '',
+    description: '',
+    amount: '',
     billing_month: ''
   });
 
@@ -104,6 +115,50 @@ const Cards = () => {
     await deleteCard(id);
   };
 
+  const handleEditExpense = (expense: any) => {
+    setEditingExpense(expense);
+    setEditExpenseForm({
+      purchase_date: expense.purchase_date,
+      description: expense.description,
+      amount: expense.amount.toString(),
+      billing_month: expense.billing_month
+    });
+    setShowEditExpense(true);
+  };
+
+  const handleUpdateExpense = async () => {
+    if (!editingExpense || !editExpenseForm.description || !editExpenseForm.amount) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const result = await updateCardExpense(editingExpense.id, {
+      description: editExpenseForm.description,
+      amount: parseFloat(editExpenseForm.amount),
+      purchase_date: editExpenseForm.purchase_date,
+      billing_month: editExpenseForm.billing_month
+    });
+
+    if (result) {
+      setEditExpenseForm({
+        purchase_date: '',
+        description: '',
+        amount: '',
+        billing_month: ''
+      });
+      setShowEditExpense(false);
+      setEditingExpense(null);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    await deleteCardExpense(id);
+  };
+
   const handleAddExpense = async () => {
     if (!expenseForm.card_id || !expenseForm.purchase_date || !expenseForm.description || !expenseForm.amount) {
       toast({
@@ -162,6 +217,13 @@ const Cards = () => {
     return cardExpenses.reduce((total, expense) => total + expense.amount, 0);
   };
 
+  const getFilteredExpenses = () => {
+    if (!selectedCardFilter) {
+      return cardExpenses;
+    }
+    return cardExpenses.filter(expense => expense.card_id === selectedCardFilter);
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -173,6 +235,8 @@ const Cards = () => {
       </div>
     );
   }
+
+  const filteredExpenses = getFilteredExpenses();
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -467,13 +531,22 @@ const Cards = () => {
                       Fatura: {formatters.dateMonthYear(new Date(expense.billing_month))}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
-                    {expense.is_installment && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {expense.current_installment}/{expense.installments}
-                      </p>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
+                      {expense.is_installment && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {expense.current_installment}/{expense.installments}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditExpense(expense)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -489,6 +562,132 @@ const Cards = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Filtro de cartão e despesas detalhadas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Despesas por Cartão</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="w-full sm:w-64">
+            <Label htmlFor="cardFilter">Filtrar por Cartão</Label>
+            <Select value={selectedCardFilter} onValueChange={setSelectedCardFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os cartões" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os cartões</SelectItem>
+                {cards.map((card) => (
+                  <SelectItem key={card.id} value={card.id}>
+                    {card.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            {filteredExpenses.map((expense) => (
+              <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{expense.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {cards.find(c => c.id === expense.card_id)?.name} • {formatters.date(expense.purchase_date)}
+                  </p>
+                  <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
+                    Fatura: {formatters.dateMonthYear(new Date(expense.billing_month))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
+                    {expense.is_installment && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {expense.current_installment}/{expense.installments}
+                      </p>
+                    )}
+                  </div>
+                  <CrudActions
+                    item={expense}
+                    onEdit={() => handleEditExpense(expense)}
+                    onDelete={() => handleDeleteExpense(expense.id)}
+                    showView={false}
+                    deleteTitle="Confirmar exclusão"
+                    deleteDescription="Esta ação não pode ser desfeita. A despesa será permanentemente removida."
+                  />
+                </div>
+              </div>
+            ))}
+            
+            {filteredExpenses.length === 0 && (
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  {selectedCardFilter ? 'Nenhuma despesa para este cartão' : 'Nenhuma despesa registrada'}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para editar despesa */}
+      {showEditExpense && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md bg-white dark:bg-gray-800">
+            <CardHeader>
+              <CardTitle>Editar Despesa</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="editDescription">Descrição *</Label>
+                <Input
+                  id="editDescription"
+                  value={editExpenseForm.description}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editAmount">Valor *</Label>
+                <Input
+                  id="editAmount"
+                  type="number"
+                  step="0.01"
+                  value={editExpenseForm.amount}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPurchaseDate">Data da Compra</Label>
+                <Input
+                  id="editPurchaseDate"
+                  type="date"
+                  value={editExpenseForm.purchase_date}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, purchase_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBillingMonth">Mês de Cobrança</Label>
+                <Input
+                  id="editBillingMonth"
+                  type="date"
+                  value={editExpenseForm.billing_month}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, billing_month: e.target.value })}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowEditExpense(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleUpdateExpense} className="bg-orange-500 hover:bg-orange-600">
+                  Salvar Alterações
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
