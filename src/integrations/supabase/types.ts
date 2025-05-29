@@ -344,6 +344,7 @@ export type Database = {
           paid_installments: number
           start_date: string
           total_amount: number
+          total_amountii: number
           user_id: string
         }
         Insert: {
@@ -355,6 +356,7 @@ export type Database = {
           paid_installments?: number
           start_date: string
           total_amount: number
+          total_amountii: number
           user_id: string
         }
         Update: {
@@ -366,6 +368,7 @@ export type Database = {
           paid_installments?: number
           start_date?: string
           total_amount?: number
+          total_amountii?: number
           user_id?: string
         }
         Relationships: []

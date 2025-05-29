@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +31,7 @@ const Vehicles = () => {
   const [vehicleForm, setVehicleForm] = useState({
     description: '',
     total_amount: '',
+    total_amountii: '',
     installments: '',
     start_date: '',
     installment_value: '',
@@ -39,7 +39,7 @@ const Vehicles = () => {
   });
 
   const handleAddVehicle = async () => {
-    if (!vehicleForm.description || !vehicleForm.total_amount || !vehicleForm.installments || !vehicleForm.start_date) {
+    if (!vehicleForm.description || !vehicleForm.total_amount || !vehicleForm.total_amountii || !vehicleForm.installments || !vehicleForm.start_date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -49,6 +49,7 @@ const Vehicles = () => {
     }
     
     const totalAmount = parseFloat(vehicleForm.total_amount);
+    const totalAmountii = parseFloat(vehicleForm.total_amountii);
     const installments = parseInt(vehicleForm.installments);
     const installmentValue = totalAmount / installments;
     const paidInstallments = parseInt(vehicleForm.paid_installments) || 0;
@@ -56,6 +57,7 @@ const Vehicles = () => {
     const result = await addVehicle({
       description: vehicleForm.description,
       total_amount: totalAmount,
+      total_amountii: totalAmountii,
       installments: installments,
       start_date: vehicleForm.start_date,
       installment_value: installmentValue,
@@ -66,6 +68,7 @@ const Vehicles = () => {
       setVehicleForm({ 
         description: '', 
         total_amount: '', 
+        total_amountii: '',
         installments: '', 
         start_date: '', 
         installment_value: '',
@@ -273,7 +276,7 @@ const Vehicles = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
               <div>
                 <Label htmlFor="description">Descrição *</Label>
                 <Input
@@ -284,7 +287,18 @@ const Vehicles = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="totalAmount">Valor Total *</Label>
+                <Label htmlFor="totalAmountii">Valor do Bem *</Label>
+                <Input
+                  id="totalAmountii"
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={vehicleForm.total_amountii}
+                  onChange={(e) => setVehicleForm({ ...vehicleForm, total_amountii: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="totalAmount">Valor Financiado *</Label>
                 <Input
                   id="totalAmount"
                   type="number"
@@ -388,7 +402,11 @@ const Vehicles = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-600 dark:text-gray-300">Valor Total</p>
+                    <p className="text-gray-600 dark:text-gray-300">Valor do Bem</p>
+                    <p className="font-bold">{formatters.currency(vehicle.total_amountii || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-300">Valor Financiado</p>
                     <p className="font-bold">{formatters.currency(vehicle.total_amount)}</p>
                   </div>
                   <div>

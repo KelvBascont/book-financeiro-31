@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +43,7 @@ export interface Vehicle {
   user_id: string;
   description: string;
   total_amount: number;
+  total_amountii: number;
   installments: number;
   installment_value: number;
   start_date: string;
@@ -349,6 +349,33 @@ export const useSupabaseTables = () => {
       toast({
         title: "Erro",
         description: "Erro ao adicionar despesa de cartão",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateCardExpense = async (id: string, updates: Partial<CardExpense>) => {
+    try {
+      const { data, error } = await supabase
+        .from('card_expenses')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setCardExpenses(prev => prev.map(expense => expense.id === id ? data : expense));
+      toast({
+        title: "Sucesso",
+        description: "Despesa de cartão atualizada com sucesso"
+      });
+      return data;
+    } catch (error) {
+      console.error('Error updating card expense:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar despesa de cartão",
         variant: "destructive"
       });
     }
@@ -709,6 +736,7 @@ export const useSupabaseTables = () => {
     updateCard,
     deleteCard,
     addCardExpense,
+    updateCardExpense,
     deleteCardExpense,
     addInvestment,
     updateInvestment,

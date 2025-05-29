@@ -80,46 +80,29 @@ export const useMultipleStockQuotes = (tickers: string[]) => {
       
       const uniqueTickers = [...new Set(tickers.filter(Boolean))];
       
-      console.log(`Buscando cotações individuais para: ${uniqueTickers.join(', ')}`);
+      if (uniqueTickers.length === 0) return [];
       
-      // Fazer requisições individuais para cada ticker (plano gratuito BRAPI)
-      const quotes: StockQuote[] = [];
+      console.log(`Buscando cotações para: ${uniqueTickers.join(', ')}`);
       
-      for (const ticker of uniqueTickers) {
-        try {
-          console.log(`Buscando cotação individual para: ${ticker}`);
-          
-          const response = await fetch(
-            `${BRAPI_BASE_URL}/quote/${ticker}?token=${BRAPI_TOKEN}`
-          );
-          
-          if (!response.ok) {
-            console.error(`Erro ao buscar cotação para ${ticker}: ${response.status}`);
-            continue; // Pula para o próximo ticker em caso de erro
-          }
-          
-          const data: BrapiResponse = await response.json();
-          
-          if (data.results && data.results.length > 0) {
-            quotes.push(data.results[0]);
-            console.log(`Cotação obtida para ${ticker}: R$ ${data.results[0].regularMarketPrice}`);
-          }
-          
-          // Delay entre requisições para evitar rate limiting
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-        } catch (error) {
-          console.error(`Erro ao processar ${ticker}:`, error);
-          continue;
-        }
+      // Usar a API com múltiplos tickers separados por vírgula
+      const tickersString = uniqueTickers.join(',');
+      const response = await fetch(
+        `${BRAPI_BASE_URL}/quote/${tickersString}?token=${BRAPI_TOKEN}`
+      );
+      
+      if (!response.ok) {
+        console.error(`Erro ao buscar cotações: ${response.status} - ${response.statusText}`);
+        throw new Error(`Erro ao buscar cotações: ${response.statusText}`);
       }
       
-      console.log(`Total de cotações obtidas: ${quotes.length}/${uniqueTickers.length}`);
-      return quotes;
+      const data: BrapiResponse = await response.json();
+      console.log(`Cotações recebidas:`, data.results);
+      
+      return data.results || [];
     },
     enabled: tickers && tickers.length > 0,
     staleTime: 60000, // 1 minuto
-    refetchInterval: false, // Desabilitar refetch automático para evitar muitas requisições
+    refetchInterval: false, // Desabilitar refetch automático
     retry: 2,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
