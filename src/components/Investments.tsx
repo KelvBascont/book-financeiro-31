@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Plus, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw, Clock }
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
-import { useMarketData } from '@/hooks/useMarketData';
+import { useMultipleStockQuotes } from '@/hooks/useMarketData';
 import CrudActions from '@/components/CrudActions';
 
 const Investments = () => {
@@ -26,7 +25,8 @@ const Investments = () => {
     loading
   } = useSupabaseTables();
 
-  const { updatePrices } = useMarketData();
+  const tickers = [...new Set(investments.map(inv => inv.ticker))];
+  const { data: stockQuotes } = useMultipleStockQuotes(tickers);
   
   const [investmentForm, setInvestmentForm] = useState({
     ticker: '',
@@ -64,12 +64,24 @@ const Investments = () => {
   const handleUpdatePrices = async () => {
     setIsUpdatingPrices(true);
     try {
-      const tickers = [...new Set(investments.map(inv => inv.ticker))];
-      const prices = await updatePrices(tickers);
+      if (!stockQuotes || stockQuotes.length === 0) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível obter as cotações. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Criar um mapa de preços por ticker
+      const priceMap: Record<string, number> = {};
+      stockQuotes.forEach(quote => {
+        priceMap[quote.symbol] = quote.regularMarketPrice;
+      });
       
       // Atualizar cada investimento com o novo preço e timestamp
       for (const investment of investments) {
-        const newPrice = prices[investment.ticker];
+        const newPrice = priceMap[investment.ticker];
         if (newPrice !== undefined) {
           await updateInvestment(investment.id, {
             current_price: newPrice,
@@ -83,6 +95,7 @@ const Investments = () => {
         description: "Preços atualizados com sucesso!"
       });
     } catch (error) {
+      console.error('Erro ao atualizar preços:', error);
       toast({
         title: "Erro",
         description: "Erro ao atualizar preços. Tente novamente.",
