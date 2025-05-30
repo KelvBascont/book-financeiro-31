@@ -3,13 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useFormatters } from '@/hooks/useFormatters';
-import { useFinancial } from '@/contexts/FinancialContext';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useCardExpenses } from '@/hooks/useCardExpenses';
+import { useFilterRecurringTransactions } from '@/hooks/useFilterRecurringTransactions';
+import { useFinancialConsistency } from '@/hooks/useFinancialConsistency';
 import { usePrint } from '@/hooks/usePrint';
 import { FileSpreadsheet, Printer } from 'lucide-react';
 
 const FinancialSpreadsheet = () => {
   const formatters = useFormatters();
-  const { getTotalCashExpenses, getTotalIncomes } = useFinancial();
+  const { cashExpenses, incomes } = useSupabaseData();
+  const { cardExpenses } = useCardExpenses();
+  const { calculateRecurringTotal } = useFilterRecurringTransactions();
+  const { validateConsistency } = useFinancialConsistency();
   const { printSpreadsheet } = usePrint();
 
   const generateMonthsData = () => {
@@ -19,21 +25,36 @@ const FinancialSpreadsheet = () => {
     // Gera dados para 12 meses
     for (let i = 0; i < 12; i++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      const totalIncomes = getTotalIncomes(date);
-      const totalCashExpenses = getTotalCashExpenses(date);
-      const mockCardExpenses = 2500 + (Math.random() * 1000);
-      const totalExpenses = totalCashExpenses + mockCardExpenses;
+      
+      // Usar nova lógica de recorrência
+      const totalIncomes = calculateRecurringTotal(incomes, date);
+      const totalCashExpenses = calculateRecurringTotal(cashExpenses, date);
+      
+      // Calcular despesas de cartão para o mês específico
+      const cardExpensesForMonth = cardExpenses
+        .filter(expense => {
+          const expenseDate = new Date(expense.billing_month);
+          return expenseDate.getMonth() === date.getMonth() && 
+                 expenseDate.getFullYear() === date.getFullYear();
+        })
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+      const totalExpenses = totalCashExpenses + cardExpensesForMonth;
       const balance = totalIncomes - totalExpenses;
       const percentageLeft = totalIncomes > 0 ? (balance / totalIncomes) * 100 : 0;
+
+      // Validar consistência
+      const validation = validateConsistency(date);
 
       months.push({
         month: date,
         incomes: totalIncomes,
         cashExpenses: totalCashExpenses,
-        cardExpenses: mockCardExpenses,
+        cardExpenses: cardExpensesForMonth,
         totalExpenses,
         balance,
-        percentageLeft
+        percentageLeft,
+        validation
       });
     }
     
@@ -54,7 +75,7 @@ const FinancialSpreadsheet = () => {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Planilha Financeira</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Visão detalhada de receitas e despesas por mês
+            Visão detalhada de receitas e despesas por mês (com recorrência corrigida)
           </p>
         </div>
         <Button 

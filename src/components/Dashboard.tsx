@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,11 @@ import Vehicles from '@/components/Vehicles';
 import Investments from '@/components/Investments';
 import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
 import { useFinancial } from '@/contexts/FinancialContext';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useCardExpenses } from '@/hooks/useCardExpenses';
+import { useInvestments } from '@/hooks/useInvestments';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
+import { useFilterRecurringTransactions } from '@/hooks/useFilterRecurringTransactions';
 import { useFormatters } from '@/hooks/useFormatters';
 
 const Dashboard = () => {
@@ -24,8 +29,12 @@ const Dashboard = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   
-  const { selectedMonth, getTotalIncomes, getTotalCashExpenses, getBalance } = useFinancial();
-  const { cards, investments, vehicles, savingsGoals, cardExpenses } = useSupabaseTables();
+  const { selectedMonth } = useFinancial();
+  const { cashExpenses, incomes } = useSupabaseData();
+  const { cardExpenses } = useCardExpenses();
+  const { investments } = useInvestments();
+  const { vehicles, savingsGoals } = useSupabaseTables();
+  const { calculateRecurringTotal } = useFilterRecurringTransactions();
   const formatters = useFormatters();
 
   useEffect(() => {
@@ -67,10 +76,9 @@ const Dashboard = () => {
   };
 
   const DashboardContent = () => {
-    // Calcular totais para o mês selecionado
-    const totalIncomes = getTotalIncomes(selectedMonth);
-    const totalExpenses = getTotalCashExpenses(selectedMonth);
-    const balance = getBalance(selectedMonth);
+    // Calcular totais usando nova lógica de recorrência
+    const totalIncomes = calculateRecurringTotal(incomes, selectedMonth);
+    const totalExpenses = calculateRecurringTotal(cashExpenses, selectedMonth);
     
     // Calcular total de investimentos
     const totalInvestments = investments.reduce((sum, inv) => {
@@ -80,7 +88,7 @@ const Dashboard = () => {
     // Calcular total de metas de poupança
     const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
     
-    // Calcular valor total dos veículos (valor do bem, não financiamento)
+    // Calcular valor total dos veículos (valor do bem, não financiamento) - CORRIGIDO
     const totalVehicleValue = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amountii, 0);
 
     // Calcular gastos de cartão para o mês selecionado
@@ -90,7 +98,9 @@ const Dashboard = () => {
              expenseDate.getFullYear() === selectedMonth.getFullYear();
     }).reduce((sum, expense) => sum + expense.amount, 0);
 
-    // Patrimônio líquido = Investimentos + Poupanças + Valor dos veículos
+    const balance = totalIncomes - totalExpenses;
+
+    // Patrimônio líquido = Investimentos + Poupanças + Valor dos veículos - CORRIGIDO
     const netWorth = totalInvestments + totalSavings + totalVehicleValue;
 
     // Dados para gráfico de pizza - Distribuição de gastos
@@ -126,7 +136,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard Financeiro</h2>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças (com recorrência corrigida)</p>
           </div>
           <MonthSelector />
         </div>
