@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ const Dashboard = () => {
   const { cashExpenses, incomes } = useSupabaseData();
   const { cardExpenses } = useCardExpenses();
   const { investments } = useInvestments();
-  const { vehicles, savingsGoals } = useSupabaseTables();
+  const { vehicles, savingsGoals, cards } = useSupabaseTables();
   const { calculateRecurringTotal } = useFilterRecurringTransactions();
   const formatters = useFormatters();
 
