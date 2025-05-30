@@ -12,6 +12,8 @@ import CrudActions from '@/components/CrudActions';
 import MonthSelector from '@/components/income/MonthSelector';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import RecurringIndicator from '@/components/RecurringIndicator';
+import EditableOccurrenceRow from '@/components/EditableOccurrenceRow';
+import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
 
 const CashExpenses = () => {
   const { toast } = useToast();
@@ -28,6 +30,11 @@ const CashExpenses = () => {
     deleteCashExpense,
     loading
   } = useSupabaseData();
+
+  const { 
+    addOverride, 
+    getOverrideForOccurrence 
+  } = useOccurrenceOverrides();
   
   const [expenseForm, setExpenseForm] = useState({
     description: '',
@@ -129,6 +136,17 @@ const CashExpenses = () => {
     await deleteCashExpense(id);
   };
 
+  const handleUpdateOccurrence = async (transactionId: string, occurrenceIndex: number, newAmount: number) => {
+    const transaction = cashExpenses.find(t => t.id === transactionId);
+    if (!transaction) return;
+
+    // Calcular a data da ocorrência
+    const baseDate = new Date(transaction.date);
+    const occurrenceDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + occurrenceIndex, baseDate.getDate());
+    
+    await addOverride(transactionId, occurrenceIndex, newAmount, occurrenceDate.toISOString().split('T')[0]);
+  };
+
   const getFilteredExpenses = () => {
     const [month, year] = selectedMonth.split('/');
     return cashExpenses.filter(expense => {
@@ -141,6 +159,21 @@ const CashExpenses = () => {
 
   const filteredExpenses = filterByReferenceMonth(cashExpenses, selectedMonth);
   const monthlyTotal = calculateTotalForMonth(cashExpenses, selectedMonth);
+
+  // Apply overrides to filtered expenses
+  const expensesWithOverrides = filteredExpenses.map(expense => {
+    if (expense.isRecurringOccurrence && expense.occurrenceIndex !== undefined) {
+      const override = getOverrideForOccurrence(expense.id, expense.occurrenceIndex);
+      if (override) {
+        return {
+          ...expense,
+          amount: override.amount,
+          isModified: true
+        };
+      }
+    }
+    return expense;
+  });
 
   if (loading) {
     return (
@@ -328,7 +361,7 @@ const CashExpenses = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredExpenses.length === 0 ? (
+          {expensesWithOverrides.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Nenhuma despesa encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
@@ -345,51 +378,13 @@ const CashExpenses = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredExpenses.map((expense) => (
-                    <tr key={`${expense.id}-${expense.occurrenceIndex || 0}`} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          {expense.description}
-                          <RecurringIndicator transaction={expense} />
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 font-medium text-red-600 dark:text-red-400">
-                        {formatters.currency(expense.amount)}
-                      </td>
-                      <td className="py-3 px-2">
-                        {expense.displayDate}
-                        {expense.isRecurringOccurrence && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            Original: {formatters.date(expense.originalDate)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-2">
-                        {formatters.date(expense.due_date)}
-                      </td>
-                      <td className="py-3 px-2">
-                        {!expense.isRecurringOccurrence && (
-                          <div className="flex justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditExpense(expense)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="h-8 w-8 p-0 text-red-600 dark:text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                  {expensesWithOverrides.map((expense) => (
+                    <EditableOccurrenceRow
+                      key={`${expense.id}-${expense.occurrenceIndex || 0}`}
+                      transaction={expense}
+                      onUpdateOccurrence={handleUpdateOccurrence}
+                      onDeleteTransaction={handleDeleteExpense}
+                    />
                   ))}
                 </tbody>
               </table>
