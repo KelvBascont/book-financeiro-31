@@ -6,18 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Plus, DollarSign, TrendingUp, Calendar, Repeat, Edit } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import CrudActions from '@/components/CrudActions';
+import MonthSelector from '@/components/income/MonthSelector';
 
 const Income = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [editingIncome, setEditingIncome] = useState<any>(null);
+  const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   
   const {
     incomes,
@@ -56,13 +58,13 @@ const Income = () => {
     });
 
     if (result) {
-      setIncomeForm({
-        description: '',
-        amount: '',
-        date: '',
-        type: 'salary',
-        is_recurring: false,
-        recurrence_months: ''
+      setIncomeForm({ 
+        description: '', 
+        amount: '', 
+        date: '', 
+        type: 'salary', 
+        is_recurring: false, 
+        recurrence_months: '' 
       });
       setShowAddIncome(false);
     }
@@ -101,13 +103,13 @@ const Income = () => {
     });
 
     if (result) {
-      setIncomeForm({
-        description: '',
-        amount: '',
-        date: '',
-        type: 'salary',
-        is_recurring: false,
-        recurrence_months: ''
+      setIncomeForm({ 
+        description: '', 
+        amount: '', 
+        date: '', 
+        type: 'salary', 
+        is_recurring: false, 
+        recurrence_months: '' 
       });
       setShowAddIncome(false);
       setEditingIncome(null);
@@ -118,38 +120,25 @@ const Income = () => {
     await deleteIncome(id);
   };
 
-  const getTypeLabel = (type: string) => {
-    const labels = {
-      salary: 'Salário',
-      bonus: 'Bônus',
-      investment: 'Investimento',
-      other: 'Outros'
-    };
-    return labels[type as keyof typeof labels] || type;
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors = {
-      salary: 'bg-green-100 text-green-800',
-      bonus: 'bg-blue-100 text-blue-800',
-      investment: 'bg-purple-100 text-purple-800',
-      other: 'bg-gray-100 text-gray-800'
-    };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getTotalIncomes = () => {
-    return incomes.reduce((total, income) => total + income.amount, 0);
-  };
-
-  const getMonthlyIncomes = () => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
+  const getFilteredIncomes = () => {
+    const [month, year] = selectedMonth.split('/');
     return incomes.filter(income => {
       const incomeDate = new Date(income.date);
-      return incomeDate.getMonth() === currentMonth && incomeDate.getFullYear() === currentYear;
+      const incomeMonth = (incomeDate.getMonth() + 1).toString().padStart(2, '0');
+      const incomeYear = incomeDate.getFullYear().toString();
+      return incomeMonth === month && incomeYear === year;
     });
+  };
+
+  const getTotalIncome = () => {
+    return getFilteredIncomes().reduce((total, income) => total + income.amount, 0);
+  };
+
+  const typeLabels = {
+    salary: 'Salário',
+    bonus: 'Bônus',
+    investment: 'Investimento',
+    other: 'Outros'
   };
 
   if (loading) {
@@ -164,30 +153,43 @@ const Income = () => {
     );
   }
 
-  const monthlyIncomes = getMonthlyIncomes();
+  const filteredIncomes = getFilteredIncomes();
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gestão de Receitas</h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Registre suas fontes de renda</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas fontes de renda</p>
         </div>
-        <Button onClick={() => setShowAddIncome(!showAddIncome)} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto">
+        <Button onClick={() => setShowAddIncome(!showAddIncome)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nova Receita
         </Button>
       </div>
 
+      {/* Month Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtrar por Mês</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthSelector 
+            selectedMonth={selectedMonth} 
+            onMonthChange={setSelectedMonth} 
+          />
+        </CardContent>
+      </Card>
+
       {/* Resumo das receitas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Total de Receitas</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatters.currency(getTotalIncomes())}
+                  {formatters.currency(getTotalIncome())}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -199,22 +201,9 @@ const Income = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Receitas do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatters.currency(monthlyIncomes.reduce((total, income) => total + income.amount, 0))}
-                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredIncomes.length}</p>
               </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Fontes Ativas</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{incomes.length}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
+              <TrendingUp className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -285,13 +274,14 @@ const Income = () => {
             </div>
             
             {incomeForm.is_recurring && (
-              <div className="w-full sm:w-40">
-                <Label htmlFor="recurrence">Repetir a cada (meses)</Label>
+              <div className="w-full sm:w-48">
+                <Label htmlFor="recurrence">Repetir por quantos meses</Label>
                 <Input
                   id="recurrence"
                   type="number"
                   min="1"
-                  placeholder="1"
+                  max="60"
+                  placeholder="Ex: 12"
                   value={incomeForm.recurrence_months}
                   onChange={(e) => setIncomeForm({ ...incomeForm, recurrence_months: e.target.value })}
                 />
@@ -304,13 +294,13 @@ const Income = () => {
                 onClick={() => {
                   setShowAddIncome(false);
                   setEditingIncome(null);
-                  setIncomeForm({
-                    description: '',
-                    amount: '',
-                    date: '',
-                    type: 'salary',
-                    is_recurring: false,
-                    recurrence_months: ''
+                  setIncomeForm({ 
+                    description: '', 
+                    amount: '', 
+                    date: '', 
+                    type: 'salary', 
+                    is_recurring: false, 
+                    recurrence_months: '' 
                   });
                 }} 
                 className="w-full sm:w-auto"
@@ -319,7 +309,7 @@ const Income = () => {
               </Button>
               <Button 
                 onClick={editingIncome ? handleUpdateIncome : handleAddIncome} 
-                className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 {editingIncome ? 'Atualizar' : 'Cadastrar'} Receita
               </Button>
@@ -328,117 +318,51 @@ const Income = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Receitas do Mês</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {monthlyIncomes.map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <DollarSign className="h-8 w-8 text-green-600 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{income.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={getTypeColor(income.type)}>
-                          {getTypeLabel(income.type)}
-                        </Badge>
-                        {income.is_recurring && (
-                          <Badge variant="outline" className="text-xs">
-                            <Repeat className="h-3 w-3 mr-1" />
-                            Recorrente
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        {formatters.date(income.date)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className="font-bold text-lg text-green-600">
-                      {formatters.currency(income.amount)}
-                    </p>
-                    <CrudActions
-                      item={income}
-                      onEdit={handleEditIncome}
-                      onDelete={() => handleDeleteIncome(income.id)}
-                      showView={false}
-                      deleteTitle="Confirmar exclusão"
-                      deleteDescription="Esta ação não pode ser desfeita. A receita será permanentemente removida."
-                    />
-                  </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Receitas Cadastradas - {selectedMonth}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {filteredIncomes.map((income) => (
+              <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{income.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {typeLabels[income.type]} • {formatters.date(income.date)}
+                  </p>
+                  {income.is_recurring && (
+                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
+                      Recorrente ({income.recurrence_months} meses)
+                    </span>
+                  )}
                 </div>
-              ))}
-              
-              {monthlyIncomes.length === 0 && (
-                <div className="text-center py-8">
-                  <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">Nenhuma receita para este mês</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Receita" para começar</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Todas as Receitas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {incomes.map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <DollarSign className="h-6 w-6 text-green-600 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate text-sm">{income.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={`${getTypeColor(income.type)} text-xs`}>
-                          {getTypeLabel(income.type)}
-                        </Badge>
-                        {income.is_recurring && (
-                          <Badge variant="outline" className="text-xs">
-                            <Repeat className="h-3 w-3 mr-1" />
-                            Recorrente
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">
-                        {formatters.date(income.date)}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="font-bold text-lg text-green-600">{formatters.currency(income.amount)}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <p className="font-bold text-green-600">
-                      {formatters.currency(income.amount)}
-                    </p>
-                    <CrudActions
-                      item={income}
-                      onEdit={handleEditIncome}
-                      onDelete={() => handleDeleteIncome(income.id)}
-                      showView={false}
-                      deleteTitle="Confirmar exclusão"
-                      deleteDescription="Esta ação não pode ser desfeita. A receita será permanentemente removida."
-                    />
-                  </div>
+                  <CrudActions
+                    item={income}
+                    onEdit={handleEditIncome}
+                    onDelete={() => handleDeleteIncome(income.id)}
+                    showView={false}
+                    deleteTitle="Confirmar exclusão"
+                    deleteDescription="Esta receita será permanentemente removida."
+                  />
                 </div>
-              ))}
-              
-              {incomes.length === 0 && (
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">Nenhuma receita cadastrada</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Receita" para começar</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            ))}
+            
+            {filteredIncomes.length === 0 && (
+              <div className="text-center py-8">
+                <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Nenhuma receita encontrada para {selectedMonth}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Receita" para começar</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
