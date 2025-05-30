@@ -39,6 +39,13 @@ const CashExpenses = () => {
   });
 
   const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
+
+  // Helper function to format month display
+  const formatMonthDisplay = (monthString: string) => {
+    const [month, year] = monthString.split('/');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return formatters.dateMonthYear(date);
+  };
   
   const handleAddExpense = async () => {
     if (!expenseForm.description || !expenseForm.amount || !expenseForm.date || !expenseForm.due_date) {
@@ -310,7 +317,7 @@ const CashExpenses = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
-              Despesas Correntes - {formatters.dateMonthYear(selectedMonth)}
+              Despesas Correntes - {formatMonthDisplay(selectedMonth)}
             </CardTitle>
             <div className="text-right">
               <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
@@ -323,7 +330,7 @@ const CashExpenses = () => {
         <CardContent>
           {filteredExpenses.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Nenhuma despesa encontrada para {formatters.dateMonthYear(selectedMonth)}
+              Nenhuma despesa encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -366,7 +373,7 @@ const CashExpenses = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setEditingExpense(expense)}
+                              onClick={() => handleEditExpense(expense)}
                               className="h-8 w-8 p-0"
                             >
                               <Edit2 className="h-4 w-4" />
@@ -374,7 +381,7 @@ const CashExpenses = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteCashExpense(expense.id)}
+                              onClick={() => handleDeleteExpense(expense.id)}
                               className="h-8 w-8 p-0 text-red-600 dark:text-red-400"
                             >
                               <Trash2 className="h-4 w-4" />

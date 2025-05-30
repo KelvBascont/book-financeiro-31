@@ -42,6 +42,13 @@ const Income = () => {
 
   const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
 
+  // Helper function to format month display
+  const formatMonthDisplay = (monthString: string) => {
+    const [month, year] = monthString.split('/');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return formatters.dateMonthYear(date);
+  };
+
   const handleAddIncome = async () => {
     if (!incomeForm.description || !incomeForm.amount || !incomeForm.date) {
       toast({
@@ -342,7 +349,7 @@ const Income = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Receitas - {formatters.dateMonthYear(selectedMonth)}
+              Receitas - {formatMonthDisplay(selectedMonth)}
             </CardTitle>
             <div className="text-right">
               <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
@@ -355,7 +362,7 @@ const Income = () => {
         <CardContent>
           {filteredIncomes.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Nenhuma receita encontrada para {formatters.dateMonthYear(selectedMonth)}
+              Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
           ) : (
             <div className="overflow-x-auto">
