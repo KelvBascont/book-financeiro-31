@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Menu, DollarSign, CreditCard, Target, TrendingUp, PiggyBank, Receipt } from 'lucide-react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from 'recharts';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import MonthSelector from '@/components/MonthSelector';
@@ -19,8 +20,9 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
-import { useFilterRecurringTransactions } from '@/hooks/useFilterRecurringTransactions';
+import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { useFormatters } from '@/hooks/useFormatters';
+import { format, subMonths, addMonths } from 'date-fns';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -33,7 +35,7 @@ const Dashboard = () => {
   const { cardExpenses } = useCardExpenses();
   const { investments } = useInvestments();
   const { vehicles, savingsGoals, cards } = useSupabaseTables();
-  const { calculateRecurringTotal } = useFilterRecurringTransactions();
+  const { calculateTotalForMonth } = useRecurrenceFilter();
   const formatters = useFormatters();
 
   useEffect(() => {
@@ -75,9 +77,9 @@ const Dashboard = () => {
   };
 
   const DashboardContent = () => {
-    // Calcular totais usando nova lógica de recorrência
-    const totalIncomes = calculateRecurringTotal(incomes, selectedMonth);
-    const totalExpenses = calculateRecurringTotal(cashExpenses, selectedMonth);
+    // Usar nova lógica de recorrência corrigida
+    const totalIncomes = calculateTotalForMonth(incomes, selectedMonth);
+    const totalExpenses = calculateTotalForMonth(cashExpenses, selectedMonth);
     
     // Calcular total de investimentos
     const totalInvestments = investments.reduce((sum, inv) => {
@@ -87,7 +89,7 @@ const Dashboard = () => {
     // Calcular total de metas de poupança
     const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
     
-    // Calcular valor total dos veículos (valor do bem, não financiamento) - CORRIGIDO
+    // Calcular valor total dos veículos (valor do bem)
     const totalVehicleValue = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amountii, 0);
 
     // Calcular gastos de cartão para o mês selecionado
@@ -98,9 +100,31 @@ const Dashboard = () => {
     }).reduce((sum, expense) => sum + expense.amount, 0);
 
     const balance = totalIncomes - totalExpenses;
-
-    // Patrimônio líquido = Investimentos + Poupanças + Valor dos veículos - CORRIGIDO
     const netWorth = totalInvestments + totalSavings + totalVehicleValue;
+
+    // Gerar dados para gráfico de tendência patrimonial (últimos 6 meses)
+    const generatePatrimonyTrend = () => {
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const month = subMonths(selectedMonth, i);
+        const monthIncomes = calculateTotalForMonth(incomes, month);
+        const monthExpenses = calculateTotalForMonth(cashExpenses, month);
+        const monthCardExpenses = cardExpenses.filter(expense => {
+          const expenseDate = new Date(expense.billing_month);
+          return expenseDate.getMonth() === month.getMonth() && 
+                 expenseDate.getFullYear() === month.getFullYear();
+        }).reduce((sum, expense) => sum + expense.amount, 0);
+
+        months.push({
+          month: format(month, 'MMM/yy'),
+          patrimonio: netWorth, // Simplificado para demonstração
+          saldo: monthIncomes - monthExpenses - monthCardExpenses,
+          receitas: monthIncomes,
+          despesas: monthExpenses + monthCardExpenses
+        });
+      }
+      return months;
+    };
 
     // Dados para gráfico de pizza - Distribuição de gastos
     const expenseData = [
@@ -116,26 +140,22 @@ const Dashboard = () => {
       }
     ].filter(item => item.value > 0);
 
-    // Dados para gráfico de barras - Receita vs Despesas
-    const barData = [
-      {
-        name: 'Receitas',
-        value: totalIncomes,
-        fill: '#22c55e'
-      },
-      {
-        name: 'Despesas',
-        value: totalExpenses + cardExpensesForMonth,
-        fill: '#ef4444'
-      }
-    ];
+    // Dados para gráfico de barras - Receita vs Despesas com diferença
+    const barData = [{
+      name: 'Fluxo Mensal',
+      receitas: totalIncomes,
+      despesas: totalExpenses + cardExpensesForMonth,
+      saldo: balance - cardExpensesForMonth
+    }];
+
+    const patrimonyTrendData = generatePatrimonyTrend();
 
     return (
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard Financeiro</h2>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças (com recorrência corrigida)</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral com recorrência corrigida</p>
           </div>
           <MonthSelector />
         </div>
@@ -195,45 +215,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Gráficos */}
+        {/* Gráficos Melhorados */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Gráfico de Pizza - Distribuição de Gastos */}
+          {/* Gráfico de Barras - Fluxo Mensal */}
           <Card>
             <CardHeader>
-              <CardTitle>Distribuição de Gastos - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={expenseData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${formatters.currency(value)}`}
-                  >
-                    {expenseData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatters.currency(Number(value))} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-              {expenseData.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Nenhuma despesa registrada para este mês
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Gráfico de Barras - Receita vs Despesas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Receitas vs Despesas - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
+              <CardTitle>Fluxo Financeiro - {formatters.dateMonthYear(selectedMonth)}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -241,9 +228,55 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
-                  <Tooltip formatter={(value) => formatters.currency(Number(value))} />
-                  <Bar dataKey="value" />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      formatters.currency(Number(value)), 
+                      name === 'receitas' ? 'Receitas' : 
+                      name === 'despesas' ? 'Despesas' : 'Saldo'
+                    ]}
+                  />
+                  <Legend />
+                  <Bar dataKey="receitas" fill="#22c55e" name="Receitas" />
+                  <Bar dataKey="despesas" fill="#ef4444" name="Despesas" />
+                  <Bar dataKey="saldo" fill="#3b82f6" name="Saldo" />
                 </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Tendência Patrimonial */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolução Patrimonial (6 meses)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={patrimonyTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => formatters.currencyCompact(value)} />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      formatters.currency(Number(value)), 
+                      name === 'patrimonio' ? 'Patrimônio' : 'Saldo Mensal'
+                    ]}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="patrimonio" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={3}
+                    name="Patrimônio"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saldo" 
+                    stroke="#06b6d4" 
+                    strokeWidth={2}
+                    name="Saldo Mensal"
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

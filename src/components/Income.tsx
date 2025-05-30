@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,9 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import CrudActions from '@/components/CrudActions';
 import MonthSelector from '@/components/income/MonthSelector';
+import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
+import RecurringIndicator from '@/components/RecurringIndicator';
+import { Edit2, Trash2 } from 'lucide-react';
 
 const Income = () => {
   const { toast } = useToast();
@@ -37,6 +39,8 @@ const Income = () => {
     is_recurring: false,
     recurrence_months: ''
   });
+
+  const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
 
   const handleAddIncome = async () => {
     if (!incomeForm.description || !incomeForm.amount || !incomeForm.date) {
@@ -153,7 +157,8 @@ const Income = () => {
     );
   }
 
-  const filteredIncomes = getFilteredIncomes();
+  const filteredIncomes = filterByReferenceMonth(incomes, selectedMonth);
+  const monthlyTotal = calculateTotalForMonth(incomes, selectedMonth);
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -189,7 +194,7 @@ const Income = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatters.currency(getTotalIncome())}
+                  {formatters.currency(monthlyTotal)}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -320,47 +325,89 @@ const Income = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Receitas Cadastradas - {selectedMonth}</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Receitas - {formatters.dateMonthYear(selectedMonth)}
+            </CardTitle>
+            <div className="text-right">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
+              <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                {formatters.currency(monthlyTotal)}
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {filteredIncomes.map((income) => (
-              <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate">{income.description}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {typeLabels[income.type]} • {formatters.date(income.date)}
-                  </p>
-                  {income.is_recurring && (
-                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
-                      Recorrente ({income.recurrence_months} meses)
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="font-bold text-lg text-green-600">{formatters.currency(income.amount)}</p>
-                  </div>
-                  <CrudActions
-                    item={income}
-                    onEdit={handleEditIncome}
-                    onDelete={() => handleDeleteIncome(income.id)}
-                    showView={false}
-                    deleteTitle="Confirmar exclusão"
-                    deleteDescription="Esta receita será permanentemente removida."
-                  />
-                </div>
-              </div>
-            ))}
-            
-            {filteredIncomes.length === 0 && (
-              <div className="text-center py-8">
-                <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">Nenhuma receita encontrada para {selectedMonth}</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Receita" para começar</p>
-              </div>
-            )}
-          </div>
+          {filteredIncomes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Nenhuma receita encontrada para {formatters.dateMonthYear(selectedMonth)}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-2">Descrição</th>
+                    <th className="text-left py-3 px-2">Valor</th>
+                    <th className="text-left py-3 px-2">Data</th>
+                    <th className="text-left py-3 px-2">Tipo</th>
+                    <th className="text-center py-3 px-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIncomes.map((income) => (
+                    <tr key={`${income.id}-${income.occurrenceIndex || 0}`} className="border-b border-gray-100 dark:border-gray-800">
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2">
+                          {income.description}
+                          <RecurringIndicator transaction={income} />
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 font-medium text-green-600 dark:text-green-400">
+                        {formatters.currency(income.amount)}
+                      </td>
+                      <td className="py-3 px-2">
+                        {income.displayDate}
+                        {income.isRecurringOccurrence && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Original: {formatters.date(income.originalDate)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(income.type)}`}>
+                          {getTypeLabel(income.type)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2">
+                        {!income.isRecurringOccurrence && (
+                          <div className="flex justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingIncome(income)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteIncome(income.id)}
+                              className="h-8 w-8 p-0 text-red-600 dark:text-red-400"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
