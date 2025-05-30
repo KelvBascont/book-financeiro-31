@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import CrudActions from '@/components/CrudActions';
+import CardExpenseDetails from '@/components/CardExpenseDetails';
 
 const Cards = () => {
   const { toast } = useToast();
@@ -17,6 +18,7 @@ const Cards = () => {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [editingCard, setEditingCard] = useState<any>(null);
+  const [selectedCardForDetails, setSelectedCardForDetails] = useState<string>('');
   
   const {
     cards,
@@ -104,7 +106,6 @@ const Cards = () => {
   };
 
   const handleAddExpense = async () => {
-    // Verificar se o cartão selecionado é inválido
     if (expenseForm.card_id === 'no-cards') {
       toast({
         title: "Erro",
@@ -170,6 +171,8 @@ const Cards = () => {
   const getTotalExpenses = () => {
     return cardExpenses.reduce((total, expense) => total + expense.amount, 0);
   };
+
+  const selectedCard = cards.find(card => card.id === selectedCardForDetails);
 
   if (loading) {
     return (
@@ -244,6 +247,38 @@ const Cards = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Nova seção para seleção de cartão e visualização detalhada */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Selecionar cartão para ver despesas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <Label htmlFor="cardSelect">Cartão</Label>
+            <Select value={selectedCardForDetails} onValueChange={setSelectedCardForDetails}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cartão para ver suas despesas" />
+              </SelectTrigger>
+              <SelectContent>
+                {cards.map((card) => (
+                  <SelectItem key={card.id} value={card.id}>
+                    {card.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Despesas detalhadas do cartão selecionado */}
+      {selectedCard && (
+        <CardExpenseDetails 
+          cardId={selectedCard.id} 
+          cardName={selectedCard.name} 
+        />
+      )}
 
       {showAddCard && (
         <Card>

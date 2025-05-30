@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,8 +80,8 @@ const Dashboard = () => {
     // Calcular total de metas de poupança
     const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
     
-    // Calcular total de financiamentos de veículos
-    const totalVehicleFinancing = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
+    // Calcular valor total dos veículos (valor do bem, não financiamento)
+    const totalVehicleValue = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amountii, 0);
 
     // Calcular gastos de cartão para o mês selecionado
     const cardExpensesForMonth = cardExpenses.filter(expense => {
@@ -90,6 +89,9 @@ const Dashboard = () => {
       return expenseDate.getMonth() === selectedMonth.getMonth() && 
              expenseDate.getFullYear() === selectedMonth.getFullYear();
     }).reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Patrimônio líquido = Investimentos + Poupanças + Valor dos veículos
+    const netWorth = totalInvestments + totalSavings + totalVehicleValue;
 
     // Dados para gráfico de pizza - Distribuição de gastos
     const expenseData = [
@@ -175,9 +177,9 @@ const Dashboard = () => {
               </div>
               
               <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Patrimônio</p>
+                <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Patrimônio Líquido</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">
-                  {formatters.currency(totalInvestments + totalSavings)}
+                  {formatters.currency(netWorth)}
                 </p>
               </div>
             </div>
@@ -279,8 +281,8 @@ const Dashboard = () => {
               <PiggyBank className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatters.currencyCompact(totalVehicleFinancing)}</div>
-              <p className="text-xs text-muted-foreground">{vehicles.length} financiamentos</p>
+              <div className="text-2xl font-bold">{formatters.currencyCompact(totalVehicleValue)}</div>
+              <p className="text-xs text-muted-foreground">{vehicles.length} veículos</p>
             </CardContent>
           </Card>
         </div>

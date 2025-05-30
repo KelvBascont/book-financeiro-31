@@ -22,8 +22,7 @@ const FinancialSpreadsheet = () => {
       const totalIncomes = getTotalIncomes(date);
       const totalCashExpenses = getTotalCashExpenses(date);
       const mockCardExpenses = 2500 + (Math.random() * 1000);
-      const mockFixedExpenses = 1200;
-      const totalExpenses = totalCashExpenses + mockCardExpenses + mockFixedExpenses;
+      const totalExpenses = totalCashExpenses + mockCardExpenses;
       const balance = totalIncomes - totalExpenses;
       const percentageLeft = totalIncomes > 0 ? (balance / totalIncomes) * 100 : 0;
 
@@ -32,7 +31,6 @@ const FinancialSpreadsheet = () => {
         incomes: totalIncomes,
         cashExpenses: totalCashExpenses,
         cardExpenses: mockCardExpenses,
-        fixedExpenses: mockFixedExpenses,
         totalExpenses,
         balance,
         percentageLeft
@@ -43,6 +41,12 @@ const FinancialSpreadsheet = () => {
   };
 
   const monthsData = generateMonthsData();
+
+  const formatMonth = (date: Date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${year}`;
+  };
 
   return (
     <div className="p-3 sm:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -78,7 +82,6 @@ const FinancialSpreadsheet = () => {
                   <TableHead className="text-right">Receitas</TableHead>
                   <TableHead className="text-right">Desp. à Vista</TableHead>
                   <TableHead className="text-right">Desp. Cartão</TableHead>
-                  <TableHead className="text-right">Desp. Fixas</TableHead>
                   <TableHead className="text-right">Total Desp.</TableHead>
                   <TableHead className="text-right">Saldo</TableHead>
                   <TableHead className="text-right">% Sobra</TableHead>
@@ -88,7 +91,7 @@ const FinancialSpreadsheet = () => {
                 {monthsData.map((monthData, index) => (
                   <TableRow key={index} className={monthData.balance >= 0 ? '' : 'bg-red-50 dark:bg-red-900/20'}>
                     <TableCell className="font-medium">
-                      {formatters.dateShort(monthData.month)}
+                      {formatMonth(monthData.month)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-green-600">
                       {formatters.currency(monthData.incomes)}
@@ -98,9 +101,6 @@ const FinancialSpreadsheet = () => {
                     </TableCell>
                     <TableCell className="text-right text-red-600">
                       {formatters.currency(monthData.cardExpenses)}
-                    </TableCell>
-                    <TableCell className="text-right text-purple-600">
-                      {formatters.currency(monthData.fixedExpenses)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-red-700">
                       {formatters.currency(monthData.totalExpenses)}
