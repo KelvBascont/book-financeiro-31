@@ -50,9 +50,12 @@ export const useRecurrenceFilter = () => {
 
   const filterByReferenceMonth = (
     transactions: RecurrentTransaction[], 
-    referenceMonth: Date
+    referenceMonth: string | Date
   ): FilteredRecurrentTransaction[] => {
-    const targetMonthKey = format(referenceMonth, 'MM/yyyy');
+    // Convert string to MM/yyyy format if it's a Date object
+    const targetMonthKey = typeof referenceMonth === 'string' 
+      ? referenceMonth 
+      : format(referenceMonth, 'MM/yyyy');
     
     return transactions
       .flatMap(generateOccurrences)
@@ -67,7 +70,7 @@ export const useRecurrenceFilter = () => {
 
   const calculateTotalForMonth = (
     transactions: RecurrentTransaction[],
-    referenceMonth: Date
+    referenceMonth: string | Date
   ): number => {
     const filtered = filterByReferenceMonth(transactions, referenceMonth);
     return filtered.reduce((sum, tx) => sum + tx.amount, 0);
