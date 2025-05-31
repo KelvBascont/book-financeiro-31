@@ -5,17 +5,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
-import { useFilterRecurringTransactions } from '@/hooks/useFilterRecurringTransactions';
-import { useFinancialConsistency } from '@/hooks/useFinancialConsistency';
+import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { usePrint } from '@/hooks/usePrint';
 import { FileSpreadsheet, Printer } from 'lucide-react';
+import { format, eachMonthOfInterval, addMonths } from 'date-fns';
 
 const FinancialSpreadsheet = () => {
   const formatters = useFormatters();
   const { cashExpenses, incomes } = useSupabaseData();
   const { cardExpenses } = useCardExpenses();
-  const { calculateRecurringTotal } = useFilterRecurringTransactions();
-  const { validateConsistency } = useFinancialConsistency();
+  const { calculateTotalForMonth } = useRecurrenceFilter();
   const { printSpreadsheet } = usePrint();
 
   const generateMonthsData = () => {
@@ -23,28 +22,29 @@ const FinancialSpreadsheet = () => {
     const currentDate = new Date();
     
     // Gera dados para 12 meses
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+    const monthsToGenerate = eachMonthOfInterval({
+      start: currentDate,
+      end: addMonths(currentDate, 11)
+    });
+    
+    monthsToGenerate.forEach(date => {
+      const monthString = format(date, 'MM/yyyy');
       
-      // Usar nova lógica de recorrência
-      const totalIncomes = calculateRecurringTotal(incomes, date);
-      const totalCashExpenses = calculateRecurringTotal(cashExpenses, date);
+      // Usar lógica de recorrência correta do hook
+      const totalIncomes = calculateTotalForMonth(incomes, monthString);
+      const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
       
       // Calcular despesas de cartão para o mês específico
       const cardExpensesForMonth = cardExpenses
         .filter(expense => {
-          const expenseDate = new Date(expense.billing_month);
-          return expenseDate.getMonth() === date.getMonth() && 
-                 expenseDate.getFullYear() === date.getFullYear();
+          const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
+          return expenseMonth === monthString;
         })
         .reduce((sum, expense) => sum + expense.amount, 0);
 
       const totalExpenses = totalCashExpenses + cardExpensesForMonth;
       const balance = totalIncomes - totalExpenses;
       const percentageLeft = totalIncomes > 0 ? (balance / totalIncomes) * 100 : 0;
-
-      // Validar consistência
-      const validation = validateConsistency(date);
 
       months.push({
         month: date,
@@ -53,10 +53,9 @@ const FinancialSpreadsheet = () => {
         cardExpenses: cardExpensesForMonth,
         totalExpenses,
         balance,
-        percentageLeft,
-        validation
+        percentageLeft
       });
-    }
+    });
     
     return months;
   };
@@ -75,7 +74,7 @@ const FinancialSpreadsheet = () => {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Planilha Financeira</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Visão detalhada de receitas e despesas por mês (com recorrência corrigida)
+            Visão detalhada de receitas e despesas por mês
           </p>
         </div>
         <Button 
