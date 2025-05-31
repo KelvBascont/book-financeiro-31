@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Home, CreditCard, TrendingDown, TrendingUp, PiggyBank, Car, BarChart3, Menu, LogOut } from 'lucide-react';
+import { Home, CreditCard, TrendingDown, TrendingUp, PiggyBank, Car, BarChart3, Menu, LogOut, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -20,6 +20,7 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
     { id: 'cash-expenses', label: 'Despesas', icon: TrendingDown },
     { id: 'incomes', label: 'Receitas', icon: TrendingUp },
     { id: 'cards', label: 'Cartões', icon: CreditCard },
+    { id: 'spreadsheet', label: 'Planilhas', icon: FileSpreadsheet },
     { id: 'investments', label: 'Investimentos', icon: BarChart3 },
     { id: 'savings', label: 'Poupança', icon: PiggyBank },
     { id: 'vehicles', label: 'Veículos', icon: Car },

@@ -9,11 +9,10 @@ import { Plus, DollarSign, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import CrudActions from '@/components/CrudActions';
+import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
 import MonthSelector from '@/components/income/MonthSelector';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
-import RecurringIndicator from '@/components/RecurringIndicator';
-import { Edit2, Trash2 } from 'lucide-react';
+import EditableIncomeRow from '@/components/EditableIncomeRow';
 
 const Income = () => {
   const { toast } = useToast();
@@ -30,6 +29,8 @@ const Income = () => {
     deleteIncome,
     loading
   } = useSupabaseData();
+
+  const { addOverride, applyOverridesToTransactions } = useOccurrenceOverrides();
   
   const [incomeForm, setIncomeForm] = useState({
     description: '',
@@ -47,6 +48,23 @@ const Income = () => {
     const [month, year] = monthString.split('/');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
     return formatters.dateMonthYear(date);
+  };
+
+  const handleUpdateOccurrence = async (id: string, occurrenceIndex: number, newAmount: number) => {
+    try {
+      // Calcular a data da ocorrência baseada no índice
+      const originalIncome = incomes.find(income => income.id === id);
+      if (!originalIncome) return;
+
+      const originalDate = new Date(originalIncome.date);
+      const occurrenceDate = new Date(originalDate);
+      occurrenceDate.setMonth(occurrenceDate.getMonth() + occurrenceIndex);
+
+      await addOverride(id, occurrenceIndex, newAmount, occurrenceDate.toISOString().split('T')[0]);
+    } catch (error) {
+      console.error('Error updating income occurrence:', error);
+      throw error;
+    }
   };
 
   const handleAddIncome = async () => {
@@ -179,6 +197,7 @@ const Income = () => {
   }
 
   const filteredIncomes = filterByReferenceMonth(incomes, selectedMonth);
+  const filteredIncomesWithOverrides = applyOverridesToTransactions(filteredIncomes);
   const monthlyTotal = calculateTotalForMonth(incomes, selectedMonth);
 
   return (
@@ -227,7 +246,7 @@ const Income = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Receitas do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredIncomes.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredIncomesWithOverrides.length}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
             </div>
@@ -360,7 +379,7 @@ const Income = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredIncomes.length === 0 ? (
+          {filteredIncomesWithOverrides.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
@@ -370,60 +389,20 @@ const Income = () => {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-3 px-2">Descrição</th>
+                    <th className="text-left py-3 px-2">Tipo</th>
                     <th className="text-left py-3 px-2">Valor</th>
                     <th className="text-left py-3 px-2">Data</th>
-                    <th className="text-left py-3 px-2">Tipo</th>
                     <th className="text-center py-3 px-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIncomes.map((income) => (
-                    <tr key={`${income.id}-${income.occurrenceIndex || 0}`} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          {income.description}
-                          <RecurringIndicator transaction={income} />
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 font-medium text-green-600 dark:text-green-400">
-                        {formatters.currency(income.amount)}
-                      </td>
-                      <td className="py-3 px-2">
-                        {income.displayDate}
-                        {income.isRecurringOccurrence && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            Original: {formatters.date(income.originalDate)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(income.type)}`}>
-                          {getTypeLabel(income.type)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        {!income.isRecurringOccurrence && (
-                          <div className="flex justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditIncome(income)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteIncome(income.id)}
-                              className="h-8 w-8 p-0 text-red-600 dark:text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                  {filteredIncomesWithOverrides.map((income) => (
+                    <EditableIncomeRow
+                      key={`${income.id}-${income.occurrenceIndex || 0}`}
+                      income={income}
+                      onUpdateOccurrence={handleUpdateOccurrence}
+                      onDeleteIncome={handleDeleteIncome}
+                    />
                   ))}
                 </tbody>
               </table>

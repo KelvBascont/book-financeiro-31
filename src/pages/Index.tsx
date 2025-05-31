@@ -11,6 +11,7 @@ import Cards from '@/components/Cards';
 import Investments from '@/components/Investments';
 import Savings from '@/components/Savings';
 import Vehicles from '@/components/Vehicles';
+import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -46,6 +47,8 @@ const Index = () => {
         return <Income />;
       case 'cards':
         return <Cards />;
+      case 'spreadsheet':
+        return <FinancialSpreadsheet />;
       case 'investments':
         return <Investments />;
       case 'savings':

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useFormatters } from '@/hooks/useFormatters';
@@ -60,7 +61,14 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
-        {/* Add more summary cards as needed */}
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">% Sobra</p>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {totalIncome > 0 ? formatters.percentage(((totalIncome - totalExpenses) / totalIncome) * 100) : '0%'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts and Expenses Due Soon */}
@@ -88,36 +96,11 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-          
-          {/* Monthly Income vs Expenses */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Receitas vs Despesas Mensais</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => formatters.currency(value)} />
-                  <Tooltip 
-                    formatter={(value: number) => [formatters.currency(value), '']}
-                    labelFormatter={(label) => `Mês: ${label}`}
-                  />
-                  <Legend />
-                  <Bar dataKey="income" fill="#10b981" name="Receitas" />
-                  <Bar dataKey="expenses" fill="#ef4444" name="Despesas" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Expenses Due Soon Card */}
         <div className="space-y-6">
           <ExpensesDueSoonCard />
-          
-          {/* Add more cards in the right column as needed */}
         </div>
       </div>
     </div>
