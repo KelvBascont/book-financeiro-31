@@ -7,21 +7,21 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { Edit2, Save, X, AlertCircle } from 'lucide-react';
 import { type FilteredRecurrentTransaction } from '@/hooks/useRecurrenceFilter';
 
-interface EditableOccurrenceRowProps {
-  transaction: FilteredRecurrentTransaction;
+interface EditableIncomeRowProps {
+  income: FilteredRecurrentTransaction;
   onUpdateOccurrence: (id: string, occurrenceIndex: number, newAmount: number) => Promise<void>;
-  onDeleteTransaction: (id: string) => Promise<void>;
+  onDeleteIncome: (id: string) => Promise<void>;
 }
 
-const EditableOccurrenceRow = ({ 
-  transaction, 
+const EditableIncomeRow = ({ 
+  income, 
   onUpdateOccurrence, 
-  onDeleteTransaction 
-}: EditableOccurrenceRowProps) => {
+  onDeleteIncome 
+}: EditableIncomeRowProps) => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [isEditing, setIsEditing] = useState(false);
-  const [editAmount, setEditAmount] = useState(transaction.amount.toString());
+  const [editAmount, setEditAmount] = useState(income.amount.toString());
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
@@ -37,18 +37,17 @@ const EditableOccurrenceRow = ({
 
     setIsLoading(true);
     try {
-      // Para todas as ocorrências (incluindo recorrentes), vamos criar/atualizar uma entrada específica
-      await onUpdateOccurrence(transaction.id, transaction.occurrenceIndex || 0, newAmount);
+      await onUpdateOccurrence(income.id, income.occurrenceIndex || 0, newAmount);
       setIsEditing(false);
       toast({
         title: "Sucesso",
-        description: "Ocorrência atualizada com sucesso"
+        description: "Receita atualizada com sucesso"
       });
     } catch (error) {
-      console.error('Error updating occurrence:', error);
+      console.error('Error updating income occurrence:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar ocorrência",
+        description: "Erro ao atualizar receita",
         variant: "destructive"
       });
     } finally {
@@ -57,30 +56,29 @@ const EditableOccurrenceRow = ({
   };
 
   const handleCancel = () => {
-    setEditAmount(transaction.amount.toString());
+    setEditAmount(income.amount.toString());
     setIsEditing(false);
   };
 
-  // Permitir edição de todas as ocorrências agora
   const canEdit = true;
-  const canDelete = !transaction.isRecurringOccurrence; // Só pode deletar a transação original
+  const canDelete = !income.isRecurringOccurrence;
 
   return (
     <tr className="border-b border-gray-100 dark:border-gray-800">
       <td className="py-3 px-2">
         <div className="flex items-center gap-2">
-          {transaction.description}
-          {transaction.is_recurring && (
+          {income.description}
+          {income.is_recurring && (
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-green-500 flex items-center justify-center">
                 <span className="text-xs text-white">↻</span>
               </div>
-              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                #{(transaction.occurrenceIndex || 0) + 1}
+              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                #{(income.occurrenceIndex || 0) + 1}
               </span>
             </div>
           )}
-          {(transaction.isModified || (transaction.isRecurringOccurrence && transaction.amount !== transaction.amount)) && (
+          {(income.isModified || (income.isRecurringOccurrence && income.amount !== income.amount)) && (
             <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
               <AlertCircle className="h-3 w-3" />
               <span>Modificada</span>
@@ -88,7 +86,12 @@ const EditableOccurrenceRow = ({
           )}
         </div>
       </td>
-      <td className="py-3 px-2 font-medium text-red-600 dark:text-red-400">
+      <td className="py-3 px-2">
+        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+          {income.type}
+        </span>
+      </td>
+      <td className="py-3 px-2 font-medium text-green-600 dark:text-green-400">
         {isEditing ? (
           <Input
             type="number"
@@ -99,19 +102,16 @@ const EditableOccurrenceRow = ({
             disabled={isLoading}
           />
         ) : (
-          formatters.currency(transaction.amount)
+          formatters.currency(income.amount)
         )}
       </td>
       <td className="py-3 px-2">
-        {transaction.displayDate}
-        {transaction.isRecurringOccurrence && (
+        {income.displayDate}
+        {income.isRecurringOccurrence && (
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Original: {formatters.date(transaction.originalDate)}
+            Original: {formatters.date(income.originalDate)}
           </div>
         )}
-      </td>
-      <td className="py-3 px-2">
-        {transaction.due_date && formatters.date(transaction.due_date)}
       </td>
       <td className="py-3 px-2">
         <div className="flex justify-center gap-2">
@@ -152,7 +152,7 @@ const EditableOccurrenceRow = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onDeleteTransaction(transaction.id)}
+                  onClick={() => onDeleteIncome(income.id)}
                   className="h-8 w-8 p-0 text-red-600 dark:text-red-400"
                 >
                   <X className="h-4 w-4" />
@@ -166,4 +166,4 @@ const EditableOccurrenceRow = ({
   );
 };
 
-export default EditableOccurrenceRow;
+export default EditableIncomeRow;

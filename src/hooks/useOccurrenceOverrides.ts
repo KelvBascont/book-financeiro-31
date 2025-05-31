@@ -46,6 +46,18 @@ export const useOccurrenceOverrides = () => {
     if (!user) return;
 
     try {
+      // Verificar se já existe um override para esta ocorrência
+      const existingOverride = overrides.find(
+        override => override.transaction_id === transactionId && 
+                   override.occurrence_index === occurrenceIndex
+      );
+
+      if (existingOverride) {
+        // Se já existe, atualizar
+        return await updateOverride(existingOverride.id, { amount, date });
+      }
+
+      // Se não existe, criar novo
       const { data, error } = await supabase
         .from('occurrence_overrides')
         .insert([{
@@ -74,6 +86,7 @@ export const useOccurrenceOverrides = () => {
         description: "Erro ao modificar ocorrência",
         variant: "destructive"
       });
+      throw error;
     }
   };
 
@@ -103,6 +116,7 @@ export const useOccurrenceOverrides = () => {
         description: "Erro ao atualizar modificação",
         variant: "destructive"
       });
+      throw error;
     }
   };
 
@@ -137,6 +151,22 @@ export const useOccurrenceOverrides = () => {
     );
   };
 
+  const applyOverridesToTransactions = (transactions: any[]) => {
+    return transactions.map(transaction => {
+      if (transaction.isRecurringOccurrence && transaction.occurrenceIndex !== undefined) {
+        const override = getOverrideForOccurrence(transaction.id, transaction.occurrenceIndex);
+        if (override) {
+          return {
+            ...transaction,
+            amount: override.amount,
+            isModified: true
+          };
+        }
+      }
+      return transaction;
+    });
+  };
+
   useEffect(() => {
     if (user) {
       setLoading(true);
@@ -151,6 +181,7 @@ export const useOccurrenceOverrides = () => {
     updateOverride,
     deleteOverride,
     getOverrideForOccurrence,
+    applyOverridesToTransactions,
     refreshOverrides: fetchOverrides
   };
 };
