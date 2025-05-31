@@ -194,6 +194,39 @@ export type Database = {
         }
         Relationships: []
       }
+      occurrence_overrides: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          occurrence_index: number
+          transaction_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date: string
+          id?: string
+          occurrence_index: number
+          transaction_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          occurrence_index?: number
+          transaction_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
