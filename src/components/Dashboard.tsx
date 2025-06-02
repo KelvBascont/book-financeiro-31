@@ -1,4 +1,5 @@
 
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useFormatters } from '@/hooks/useFormatters';
@@ -10,11 +11,14 @@ import { useVehicles } from '@/hooks/useVehicles';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, PiggyBank, CreditCard, Car, FileSpreadsheet } from 'lucide-react';
 import ExpensesDueSoonCard from '@/components/ExpensesDueSoonCard';
-import { format } from 'date-fns';
+import DateRangeFilter from '@/components/DateRangeFilter';
+import { format, isWithinInterval, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Dashboard = () => {
   const formatters = useFormatters();
+  const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
+  
   const { 
     monthlyData, 
     totalIncome, 
@@ -28,20 +32,69 @@ const Dashboard = () => {
   const { savingsGoals } = useSavingsGoals();
   const { vehicles } = useVehicles();
 
-  // Calcular valores dos novos cards
-  const totalInvestments = investments.reduce((sum, inv) => sum + (inv.current_price * inv.quantity), 0);
-  const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
-  const totalCards = cards.length;
-  const totalVehicles = vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
+  // Filtered data based on date range
+  const filteredData = useMemo(() => {
+    if (!dateFilter) {
+      return {
+        monthlyData,
+        totalIncome,
+        totalExpenses,
+        cardExpenses,
+        investments,
+        savingsGoals,
+        vehicles
+      };
+    }
 
-  // Calcular despesas de cartão do mês atual
+    const startDate = parse(dateFilter.start, 'yyyy-MM', new Date());
+    const endDate = parse(dateFilter.end, 'yyyy-MM', new Date());
+    endDate.setMonth(endDate.getMonth() + 1, 0); // Last day of end month
+
+    // Filter monthly data
+    const filteredMonthlyData = monthlyData.filter(data => {
+      const monthDate = parse(data.month, 'MMM yyyy', new Date());
+      return isWithinInterval(monthDate, { start: startDate, end: endDate });
+    });
+
+    // Filter card expenses
+    const filteredCardExpenses = cardExpenses.filter(expense => {
+      const expenseDate = new Date(expense.billing_month);
+      return isWithinInterval(expenseDate, { start: startDate, end: endDate });
+    });
+
+    return {
+      monthlyData: filteredMonthlyData,
+      totalIncome: filteredMonthlyData.reduce((sum, data) => sum + data.income, 0),
+      totalExpenses: filteredMonthlyData.reduce((sum, data) => sum + data.expenses, 0),
+      cardExpenses: filteredCardExpenses,
+      investments,
+      savingsGoals,
+      vehicles
+    };
+  }, [dateFilter, monthlyData, totalIncome, totalExpenses, cardExpenses, investments, savingsGoals, vehicles]);
+
+  // Calculate values from filtered data
+  const totalInvestments = filteredData.investments.reduce((sum, inv) => sum + (inv.current_price * inv.quantity), 0);
+  const totalSavings = filteredData.savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
+  const totalCards = cards.length;
+  const totalVehicles = filteredData.vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
+
+  // Calculate card expenses for current month or filtered period
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const currentMonthCardExpenses = cardExpenses
+  const currentMonthCardExpenses = filteredData.cardExpenses
     .filter(expense => expense.billing_month.startsWith(currentMonth))
     .reduce((sum, expense) => sum + expense.amount, 0);
 
-  const currentBalance = totalIncome - totalExpenses - currentMonthCardExpenses;
+  const currentBalance = filteredData.totalIncome - filteredData.totalExpenses - currentMonthCardExpenses;
   const totalPatrimony = totalInvestments + totalSavings + totalVehicles + currentBalance;
+
+  const handleFilterChange = (startDate: string, endDate: string) => {
+    setDateFilter({ start: startDate, end: endDate });
+  };
+
+  const handleClearFilter = () => {
+    setDateFilter(null);
+  };
 
   if (loading) {
     return (
@@ -60,8 +113,17 @@ const Dashboard = () => {
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-        <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
+          </div>
+          <DateRangeFilter
+            onFilterChange={handleFilterChange}
+            onClearFilter={handleClearFilter}
+            isActive={!!dateFilter}
+          />
+        </div>
       </div>
 
       {/* New Cards Row - Investments, Savings, Cards, Vehicles */}
@@ -74,7 +136,7 @@ const Dashboard = () => {
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {formatters.currencyCompact(totalInvestments)}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{investments.length} ativos</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.investments.length} ativos</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
@@ -89,7 +151,7 @@ const Dashboard = () => {
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {formatters.currencyCompact(totalSavings)}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{savingsGoals.length} metas</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.savingsGoals.length} metas</p>
               </div>
               <PiggyBank className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
@@ -117,7 +179,7 @@ const Dashboard = () => {
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {formatters.currencyCompact(totalVehicles)}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{vehicles.length} veículos</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.vehicles.length} veículos</p>
               </div>
               <Car className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
@@ -130,7 +192,7 @@ const Dashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
             <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
-            Resumo Financeiro - {format(new Date(), 'MMM/yyyy', { locale: ptBR })}
+            Resumo Financeiro - {dateFilter ? `${dateFilter.start} a ${dateFilter.end}` : format(new Date(), 'MMM/yyyy', { locale: ptBR })}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -138,17 +200,17 @@ const Dashboard = () => {
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Receitas</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatters.currency(totalIncome)}
+                {formatters.currency(filteredData.totalIncome)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Despesas</p>
               <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatters.currency(totalExpenses + currentMonthCardExpenses)}
+                {formatters.currency(filteredData.totalExpenses + currentMonthCardExpenses)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Saldo do Mês</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Saldo do Período</p>
               <p className={`text-2xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatters.currency(currentBalance)}
               </p>
@@ -173,7 +235,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyData}>
+                <BarChart data={filteredData.monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
                   <XAxis dataKey="month" stroke="#6b7280" className="dark:stroke-gray-300" />
                   <YAxis tickFormatter={(value) => formatters.currency(value)} stroke="#6b7280" className="dark:stroke-gray-300" />
