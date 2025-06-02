@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Home, CreditCard, TrendingDown, TrendingUp, PiggyBank, Car, BarChart3, Menu, LogOut, FileSpreadsheet } from 'lucide-react';
+import { Home, CreditCard, TrendingDown, TrendingUp, PiggyBank, Car, BarChart3, Menu, LogOut, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -14,6 +14,7 @@ interface NavigationProps {
 const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
   const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -31,7 +32,7 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
     setOpen(false);
   };
 
-  const NavItems = () => (
+  const NavItems = ({ collapsed = false }: { collapsed?: boolean }) => (
     <>
       {navigationItems.map((item) => {
         const Icon = item.icon;
@@ -39,23 +40,40 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
           <Button
             key={item.id}
             variant={currentView === item.id ? "default" : "ghost"}
-            className="w-full justify-start"
+            className={`
+              ${collapsed ? 'w-12 h-12 p-0' : 'w-full justify-start'} 
+              transition-all duration-200 group
+              ${currentView === item.id 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md' 
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              }
+              rounded-lg
+            `}
             onClick={() => handleItemClick(item.id)}
+            title={collapsed ? item.label : undefined}
           >
-            <Icon className="mr-2 h-4 w-4" />
-            {item.label}
+            <Icon className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'} transition-transform group-hover:scale-110`} />
+            {!collapsed && <span className="font-medium">{item.label}</span>}
           </Button>
         );
       })}
-      <div className="mt-auto pt-4">
-        <ThemeToggle />
+      <div className={`${collapsed ? 'space-y-2' : 'mt-auto pt-4 space-y-2'}`}>
+        <div className={collapsed ? 'flex justify-center' : ''}>
+          <ThemeToggle />
+        </div>
         <Button
           variant="ghost"
-          className="w-full justify-start mt-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+          className={`
+            ${collapsed ? 'w-12 h-12 p-0' : 'w-full justify-start'} 
+            text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20
+            transition-all duration-200
+            rounded-lg
+          `}
           onClick={signOut}
+          title={collapsed ? 'Sair' : undefined}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sair
+          <LogOut className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'}`} />
+          {!collapsed && <span className="font-medium">Sair</span>}
         </Button>
       </div>
     </>
@@ -64,16 +82,26 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
   return (
     <>
       {/* Desktop Navigation */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+      <div className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 transition-all duration-300 ${isCollapsed ? 'md:w-20' : 'md:w-64'}`}>
+        <div className="flex-1 flex flex-col min-h-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-700/50 shadow-lg">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                Controle Financeiro
-              </h1>
+            <div className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+              {!isCollapsed && (
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                  Controle Financeiro
+                </h1>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+              >
+                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
             </div>
-            <nav className="mt-5 flex-1 px-2 space-y-1">
-              <NavItems />
+            <nav className={`mt-5 flex-1 ${isCollapsed ? 'px-2 space-y-2' : 'px-2 space-y-1'}`}>
+              <NavItems collapsed={isCollapsed} />
             </nav>
           </div>
         </div>
@@ -81,18 +109,18 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
 
       {/* Mobile Navigation */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             Controle Financeiro
           </h1>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64">
-              <nav className="flex flex-col space-y-1">
+            <SheetContent side="left" className="w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+              <nav className="flex flex-col space-y-2 mt-6">
                 <NavItems />
               </nav>
             </SheetContent>
