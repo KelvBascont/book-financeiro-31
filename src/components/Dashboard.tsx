@@ -163,42 +163,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Original Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">Receita Total</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatters.currency(totalIncome)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">Despesa Total</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {formatters.currency(totalExpenses)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">Saldo</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {formatters.currency(totalIncome - totalExpenses)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">% Sobra</p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {totalIncome > 0 ? formatters.percentage(((totalIncome - totalExpenses) / totalIncome) * 100) : '0%'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Charts and Expenses Due Soon */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
