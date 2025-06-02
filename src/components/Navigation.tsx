@@ -17,14 +17,14 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'cash-expenses', label: 'Despesas', icon: TrendingDown },
-    { id: 'incomes', label: 'Receitas', icon: TrendingUp },
-    { id: 'cards', label: 'Cartões', icon: CreditCard },
-    { id: 'spreadsheet', label: 'Planilhas', icon: FileSpreadsheet },
-    { id: 'investments', label: 'Investimentos', icon: BarChart3 },
-    { id: 'savings', label: 'Poupança', icon: PiggyBank },
-    { id: 'vehicles', label: 'Veículos', icon: Car },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'text-blue-600 dark:text-blue-400' },
+    { id: 'cash-expenses', label: 'Despesas', icon: TrendingDown, color: 'text-red-600 dark:text-red-400' },
+    { id: 'incomes', label: 'Receitas', icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
+    { id: 'cards', label: 'Cartões', icon: CreditCard, color: 'text-orange-600 dark:text-orange-400' },
+    { id: 'spreadsheet', label: 'Planilhas', icon: FileSpreadsheet, color: 'text-teal-600 dark:text-teal-400' },
+    { id: 'investments', label: 'Investimentos', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400' },
+    { id: 'savings', label: 'Poupança', icon: PiggyBank, color: 'text-indigo-600 dark:text-indigo-400' },
+    { id: 'vehicles', label: 'Veículos', icon: Car, color: 'text-pink-600 dark:text-pink-400' },
   ];
 
   const handleItemClick = (itemId: string) => {
@@ -52,7 +52,11 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
             onClick={() => handleItemClick(item.id)}
             title={collapsed ? item.label : undefined}
           >
-            <Icon className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'} transition-transform group-hover:scale-110`} />
+            <Icon className={`
+              ${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'} 
+              transition-transform group-hover:scale-110
+              ${currentView === item.id ? 'text-white' : (collapsed ? item.color : '')}
+            `} />
             {!collapsed && <span className="font-medium">{item.label}</span>}
           </Button>
         );
@@ -72,7 +76,7 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
           onClick={signOut}
           title={collapsed ? 'Sair' : undefined}
         >
-          <LogOut className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'}`} />
+          <LogOut className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'} text-red-600 dark:text-red-400`} />
           {!collapsed && <span className="font-medium">Sair</span>}
         </Button>
       </div>

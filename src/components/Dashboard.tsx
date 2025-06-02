@@ -196,7 +196,7 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Receitas</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -204,9 +204,15 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Despesas</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Despesas em Dinheiro</p>
               <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatters.currency(filteredData.totalExpenses + currentMonthCardExpenses)}
+                {formatters.currency(filteredData.totalExpenses)}
+              </p>
+            </div>
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Despesas com Cartão</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {formatters.currency(currentMonthCardExpenses)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
