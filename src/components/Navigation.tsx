@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Home, CreditCard, TrendingDown, TrendingUp, PiggyBank, Car, BarChart3, Menu, LogOut, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,7 +11,7 @@ interface NavigationProps {
   onViewChange: (view: string) => void;
 }
 
-const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
+const Navigation = React.memo(({ currentView, onViewChange }: NavigationProps) => {
   const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -27,12 +27,20 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
     { id: 'vehicles', label: 'Veículos', icon: Car, color: 'text-pink-600 dark:text-pink-400' },
   ];
 
-  const handleItemClick = (itemId: string) => {
+  const handleItemClick = React.useCallback((itemId: string) => {
     onViewChange(itemId);
     setOpen(false);
-  };
+  }, [onViewChange]);
 
-  const NavItems = ({ collapsed = false }: { collapsed?: boolean }) => (
+  const handleSignOut = React.useCallback(async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error during signout:', error);
+    }
+  }, [signOut]);
+
+  const NavItems = React.memo(({ collapsed = false }: { collapsed?: boolean }) => (
     <>
       {navigationItems.map((item) => {
         const Icon = item.icon;
@@ -73,7 +81,7 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
             transition-all duration-200
             rounded-lg
           `}
-          onClick={signOut}
+          onClick={handleSignOut}
           title={collapsed ? 'Sair' : undefined}
         >
           <LogOut className={`${collapsed ? 'h-5 w-5' : 'mr-3 h-4 w-4'} text-red-600 dark:text-red-400`} />
@@ -81,7 +89,7 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
         </Button>
       </div>
     </>
-  );
+  ));
 
   return (
     <>
@@ -133,6 +141,8 @@ const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
       </div>
     </>
   );
-};
+});
+
+Navigation.displayName = 'Navigation';
 
 export default Navigation;

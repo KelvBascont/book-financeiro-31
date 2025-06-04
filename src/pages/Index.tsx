@@ -12,11 +12,11 @@ import Investments from '@/components/Investments';
 import Savings from '@/components/Savings';
 import Vehicles from '@/components/Vehicles';
 import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const Index = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
-  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
 
   if (loading) {
     return (
@@ -61,23 +61,19 @@ const Index = () => {
     }
   };
 
-  // Check if menu is collapsed by looking at Navigation component state
-  const getMenuWidth = () => {
-    // This will be controlled by the Navigation component's internal state
-    return 'md:pl-64'; // Default width, the Navigation component handles its own collapse state
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
-      
-      {/* Main content */}
-      <div className={getMenuWidth()}>
-        <main className="flex-1 transition-all duration-300">
-          {renderCurrentView()}
-        </main>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navigation currentView={currentView} onViewChange={setCurrentView} />
+        
+        {/* Main content */}
+        <div className="md:pl-64">
+          <main className="flex-1 transition-all duration-300">
+            {renderCurrentView()}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 
