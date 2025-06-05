@@ -98,17 +98,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         console.log('Auth state changed:', event, session?.user?.email);
 
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else if (event === 'SIGNED_IN') {
+        // Handle all auth state changes in a unified way
+        if (event === 'SIGNED_IN') {
           setSession(session);
           setUser(session?.user ?? null);
           toast({
             title: "Login realizado",
             description: `Bem-vindo, ${session?.user?.email}!`
           });
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
         } else if (event === 'TOKEN_REFRESHED') {
+          setSession(session);
+          setUser(session?.user ?? null);
+        } else {
+          // Handle other events (INITIAL_SESSION, PASSWORD_RECOVERY, USER_UPDATED, etc.)
           setSession(session);
           setUser(session?.user ?? null);
         }
