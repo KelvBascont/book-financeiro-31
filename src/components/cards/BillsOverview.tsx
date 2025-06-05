@@ -51,11 +51,13 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
       const billDueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), card.due_date);
       const today = new Date();
       
+      // Determinar status da fatura
       let status: 'paid' | 'pending' | 'overdue' = 'pending';
       if (billDueDate < today) {
         status = 'overdue';
       }
-      // Aqui poderia ter lógica para verificar se está pago baseado em uma tabela de pagamentos
+      // TODO: Aqui poderia ter lógica para verificar se está pago baseado em uma tabela de pagamentos
+      // Por ora, vamos deixar como pendente ou vencido apenas
       
       return {
         cardId: card.id,
