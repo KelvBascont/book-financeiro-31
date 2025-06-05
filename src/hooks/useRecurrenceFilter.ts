@@ -5,6 +5,7 @@ export interface RecurrentTransaction {
   id: string;
   amount: number;
   date: string;
+  due_date?: string;
   is_recurring: boolean;
   recurrence_months?: number;
   description: string;
@@ -25,20 +26,33 @@ export const useRecurrenceFilter = () => {
       return [{
         ...transaction,
         displayDate: format(parseISO(transaction.date), 'dd/MM/yyyy'),
-        filterKey: format(parseISO(transaction.date), 'MM/yyyy'),
+        filterKey: transaction.due_date 
+          ? format(parseISO(transaction.due_date), 'MM/yyyy')
+          : format(parseISO(transaction.date), 'MM/yyyy'),
         originalDate: transaction.date
       }];
     }
 
     const startDate = parseISO(transaction.date);
+    const baseDueDate = transaction.due_date ? parseISO(transaction.due_date) : startDate;
     const occurrences: FilteredRecurrentTransaction[] = [];
 
     for (let i = 0; i < transaction.recurrence_months; i++) {
-      const occurrenceDate = addMonths(startDate, i);
+      // Data de lançamento sempre mantém a original
+      const displayDate = format(startDate, 'dd/MM/yyyy');
+      
+      // Data de vencimento avança mensalmente
+      const currentDueDate = addMonths(baseDueDate, i);
+      const dueDateFormatted = format(currentDueDate, 'yyyy-MM-dd');
+      
+      // FilterKey usa o mês de vencimento para filtros corretos
+      const filterKey = format(currentDueDate, 'MM/yyyy');
+      
       occurrences.push({
         ...transaction,
-        displayDate: format(occurrenceDate, 'dd/MM/yyyy'),
-        filterKey: format(occurrenceDate, 'MM/yyyy'),
+        due_date: dueDateFormatted,
+        displayDate,
+        filterKey,
         originalDate: transaction.date,
         isRecurringOccurrence: i > 0,
         occurrenceIndex: i
@@ -61,7 +75,13 @@ export const useRecurrenceFilter = () => {
       .flatMap(generateOccurrences)
       .filter(tx => tx.filterKey === targetMonthKey)
       .sort((a, b) => {
-        // Sort by original date first, then by occurrence index
+        // Sort by due date first (for proper chronological order)
+        if (a.due_date && b.due_date) {
+          const dueDateCompare = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          if (dueDateCompare !== 0) return dueDateCompare;
+        }
+        
+        // Then by original date, then by occurrence index
         const dateCompare = new Date(a.originalDate).getTime() - new Date(b.originalDate).getTime();
         if (dateCompare !== 0) return dateCompare;
         return (a.occurrenceIndex || 0) - (b.occurrenceIndex || 0);
@@ -82,9 +102,10 @@ export const useRecurrenceFilter = () => {
     }
 
     const startDate = parseISO(transaction.originalDate);
-    const endDate = addMonths(startDate, transaction.recurrence_months - 1);
+    const baseDueDate = transaction.due_date ? parseISO(transaction.due_date) : startDate;
+    const endDueDate = addMonths(baseDueDate, transaction.recurrence_months - 1);
     
-    return `Recorrente: ${transaction.recurrence_months} meses (${format(startDate, 'MMM/yy')}-${format(endDate, 'MMM/yy')})`;
+    return `Recorrente: ${transaction.recurrence_months} parcelas (Vencimentos: ${format(baseDueDate, 'MMM/yy')}-${format(endDueDate, 'MMM/yy')})`;
   };
 
   return {

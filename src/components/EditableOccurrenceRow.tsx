@@ -76,7 +76,7 @@ const EditableOccurrenceRow = ({
                 <span className="text-xs text-white">↻</span>
               </div>
               <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                #{(transaction.occurrenceIndex || 0) + 1}
+                #{(transaction.occurrenceIndex || 0) + 1}/{transaction.recurrence_months}
               </span>
             </div>
           )}
@@ -103,15 +103,30 @@ const EditableOccurrenceRow = ({
         )}
       </td>
       <td className="py-3 px-2">
-        {transaction.displayDate}
-        {transaction.isRecurringOccurrence && (
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Original: {formatters.date(transaction.originalDate)}
+        <div className="text-sm">
+          <div className="font-medium">
+            {transaction.displayDate}
           </div>
-        )}
+          {transaction.isRecurringOccurrence && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Original: {formatters.date(transaction.originalDate)}
+            </div>
+          )}
+        </div>
       </td>
       <td className="py-3 px-2">
-        {transaction.due_date && formatters.date(transaction.due_date)}
+        <div className="text-sm">
+          {transaction.due_date && (
+            <div className="font-medium text-orange-600 dark:text-orange-400">
+              {formatters.date(transaction.due_date)}
+            </div>
+          )}
+          {transaction.is_recurring && transaction.due_date && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Parcela {(transaction.occurrenceIndex || 0) + 1}
+            </div>
+          )}
+        </div>
       </td>
       <td className="py-3 px-2">
         <div className="flex justify-center gap-2">

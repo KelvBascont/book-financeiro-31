@@ -5,37 +5,32 @@ import { Calendar, AlertTriangle } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
-import { addDays, format, isWithinInterval } from 'date-fns';
+import { addDays, format, isWithinInterval, parseISO } from 'date-fns';
 
 const ExpensesDueSoonCard = () => {
   const formatters = useFormatters();
   const { cashExpenses, loading } = useSupabaseData();
-  const { filterByReferenceMonth } = useRecurrenceFilter();
+  const { filterByReferenceMonth, generateOccurrences } = useRecurrenceFilter();
 
   // Filtrar despesas com vencimento nos próximos 30 dias
   const getExpensesDueSoon = () => {
     const today = new Date();
     const endDate = addDays(today, 30);
     
-    // Obter todas as ocorrências dos próximos 3 meses para capturar recorrências
-    const nextThreeMonths = [
-      format(today, 'MM/yyyy'),
-      format(addDays(today, 30), 'MM/yyyy'),
-      format(addDays(today, 60), 'MM/yyyy')
-    ];
-
-    const allOccurrences = nextThreeMonths.flatMap(month => 
-      filterByReferenceMonth(cashExpenses, month)
-    );
+    // Gerar todas as ocorrências das despesas (incluindo recorrentes)
+    const allOccurrences = cashExpenses.flatMap(expense => generateOccurrences(expense));
 
     // Filtrar apenas as que vencem nos próximos 30 dias
     return allOccurrences
       .filter(expense => {
         if (!expense.due_date) return false;
-        const dueDate = new Date(expense.due_date);
+        const dueDate = parseISO(expense.due_date);
         return isWithinInterval(dueDate, { start: today, end: endDate });
       })
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      })
       .slice(0, 8); // Limitar a 8 itens para não sobrecarregar o card
   };
 
@@ -43,13 +38,14 @@ const ExpensesDueSoonCard = () => {
 
   const getDaysUntilDue = (dueDate: string) => {
     const today = new Date();
-    const due = new Date(dueDate);
+    const due = parseISO(dueDate);
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
   const getUrgencyColor = (daysUntilDue: number) => {
+    if (daysUntilDue <= 0) return 'text-red-700 dark:text-red-300 font-bold';
     if (daysUntilDue <= 3) return 'text-red-600 dark:text-red-400';
     if (daysUntilDue <= 7) return 'text-orange-600 dark:text-orange-400';
     return 'text-gray-600 dark:text-gray-400';
@@ -98,7 +94,7 @@ const ExpensesDueSoonCard = () => {
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {expensesDueSoon.map((expense, index) => {
-              const daysUntilDue = getDaysUntilDue(expense.due_date);
+              const daysUntilDue = getDaysUntilDue(expense.due_date!);
               const urgencyColor = getUrgencyColor(daysUntilDue);
               
               return (
@@ -110,20 +106,25 @@ const ExpensesDueSoonCard = () => {
                         {expense.description}
                       </p>
                       {expense.is_recurring && (
-                        <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs text-white">↻</span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center">
+                            <span className="text-xs text-white">↻</span>
+                          </div>
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            #{(expense.occurrenceIndex || 0) + 1}
+                          </span>
                         </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <p className={`text-xs ${urgencyColor}`}>
-                        {formatters.date(expense.due_date)}
+                        {formatters.date(expense.due_date!)}
                       </p>
                       {daysUntilDue <= 3 && (
                         <AlertTriangle className="h-3 w-3 text-red-500" />
                       )}
                       <span className={`text-xs ${urgencyColor}`}>
-                        {daysUntilDue === 0 ? 'Hoje' : 
+                        {daysUntilDue <= 0 ? 'Vencida' :
                          daysUntilDue === 1 ? 'Amanhã' : 
                          `${daysUntilDue} dias`}
                       </span>
