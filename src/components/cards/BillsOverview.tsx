@@ -51,13 +51,12 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
       const billDueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), card.due_date);
       const today = new Date();
       
-      // Determinar status da fatura
-      let status: 'paid' | 'pending' | 'overdue' = 'pending';
+      // Determinar status da fatura - apenas pendente ou vencido por ora
+      let status: 'pending' | 'overdue' = 'pending';
       if (billDueDate < today) {
         status = 'overdue';
       }
       // TODO: Aqui poderia ter lógica para verificar se está pago baseado em uma tabela de pagamentos
-      // Por ora, vamos deixar como pendente ou vencido apenas
       
       return {
         cardId: card.id,
@@ -75,8 +74,6 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'paid':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'overdue':
         return <AlertTriangle className="h-5 w-5 text-red-600" />;
       default:
@@ -86,8 +83,6 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'paid':
-        return 'Pago';
       case 'overdue':
         return 'Vencido';
       default:
@@ -97,8 +92,6 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid':
-        return 'text-green-600 dark:text-green-400';
       case 'overdue':
         return 'text-red-600 dark:text-red-400';
       default:
@@ -144,19 +137,13 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
                   </span>
                   
                   <div className="flex gap-1">
-                    {bill.status === 'paid' ? (
-                      <Button variant="outline" size="sm">
-                        Ver
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Pagar
-                      </Button>
-                    )}
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Pagar
+                    </Button>
                     <Button variant="outline" size="sm">
                       Editar
                     </Button>
