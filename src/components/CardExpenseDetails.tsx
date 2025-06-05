@@ -8,7 +8,7 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseTables, CardExpense } from '@/hooks/useSupabaseTables';
 import EditableExpenseCell from './EditableExpenseCell';
 import CrudActions from './CrudActions';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface CardExpenseDetailsProps {
@@ -19,15 +19,38 @@ interface CardExpenseDetailsProps {
 
 const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: CardExpenseDetailsProps) => {
   const formatters = useFormatters();
-  const { cardExpenses, updateCardExpense, deleteCardExpense } = useSupabaseTables();
+  const { cardExpenses, updateCardExpense, deleteCardExpense, cards } = useSupabaseTables();
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
+
+  // Encontrar o cartão atual para obter a data de fechamento
+  const currentCard = cards.find(card => card.id === cardId);
+  const closingDate = currentCard?.closing_date || 1;
+
+  // Função para calcular o mês da fatura baseado na data de fechamento
+  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
+    const purchase = new Date(purchaseDate);
+    const purchaseDay = purchase.getDate();
+    
+    // Se a compra foi antes ou no dia do fechamento, vai para a fatura do mês seguinte
+    // Se foi depois do fechamento, vai para a fatura do mês posterior
+    if (purchaseDay <= closingDate) {
+      return addMonths(purchase, 1);
+    } else {
+      return addMonths(purchase, 2);
+    }
+  };
 
   // Filtrar despesas do cartão no mês atual
   const currentMonthStr = format(currentMonth, 'yyyy-MM');
-  const filteredExpenses = cardExpenses.filter(expense => 
-    expense.card_id === cardId && 
-    expense.billing_month.startsWith(currentMonthStr)
-  );
+  const filteredExpenses = cardExpenses.filter(expense => {
+    if (expense.card_id !== cardId) return false;
+    
+    // Calcular o mês correto da fatura baseado na data de fechamento
+    const correctBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
+    const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
+    
+    return correctBillingMonthStr === currentMonthStr;
+  });
 
   const handleUpdateExpense = async (expenseId: string, newAmount: number) => {
     await updateCardExpense(expenseId, { amount: newAmount });
@@ -79,7 +102,7 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
           Despesas Detalhadas - {cardName} ({currentMonthName})
         </CardTitle>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          {filteredExpenses.length} compra{filteredExpenses.length !== 1 ? 's' : ''} nesta fatura
+          {filteredExpenses.length} compra{filteredExpenses.length !== 1 ? 's' : ''} nesta fatura • Fechamento dia {closingDate}
         </p>
       </CardHeader>
       <CardContent>
@@ -96,76 +119,81 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredExpenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>
-                    <div className="font-medium">
-                      {formatters.date(expense.purchase_date)}
-                    </div>
-                    {expense.is_installment && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Compra original
+              {filteredExpenses.map((expense) => {
+                // Calcular o mês correto da fatura para exibição
+                const correctBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
+                
+                return (
+                  <TableRow key={expense.id}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {formatters.date(expense.purchase_date)}
                       </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{expense.description}</div>
-                    {expense.is_installment && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400">
-                        Parcelado em {expense.installments}x
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <EditableExpenseCell
-                      value={expense.amount}
-                      isEditing={editingExpense === expense.id}
-                      onSave={(newValue) => handleUpdateExpense(expense.id, newValue)}
-                      onCancel={() => setEditingExpense(null)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      expense.is_installment 
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                        : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                    }`}>
-                      {getInstallmentInfo(expense)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {formatters.dateMonthYear(new Date(expense.billing_month))}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Fatura atual
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingExpense(expense.id)}
-                        disabled={editingExpense === expense.id}
-                        className="h-8 w-8 p-0"
-                        aria-label="Editar compra"
-                        title="Editar esta compra"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <CrudActions
-                        item={expense}
-                        onDelete={() => handleDeleteExpense(expense.id)}
-                        showEdit={false}
-                        showView={false}
-                        deleteTitle="Confirmar exclusão"
-                        deleteDescription="Esta compra será permanentemente removida de todas as faturas."
+                      {expense.is_installment && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Compra original
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{expense.description}</div>
+                      {expense.is_installment && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400">
+                          Parcelado em {expense.installments}x
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <EditableExpenseCell
+                        value={expense.amount}
+                        isEditing={editingExpense === expense.id}
+                        onSave={(newValue) => handleUpdateExpense(expense.id, newValue)}
+                        onCancel={() => setEditingExpense(null)}
                       />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        expense.is_installment 
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                      }`}>
+                        {getInstallmentInfo(expense)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {formatters.dateMonthYear(correctBillingMonth)}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Fatura atual
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingExpense(expense.id)}
+                          disabled={editingExpense === expense.id}
+                          className="h-8 w-8 p-0"
+                          aria-label="Editar compra"
+                          title="Editar esta compra"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <CrudActions
+                          item={expense}
+                          onDelete={() => handleDeleteExpense(expense.id)}
+                          showEdit={false}
+                          showView={false}
+                          deleteTitle="Confirmar exclusão"
+                          deleteDescription="Esta compra será permanentemente removida de todas as faturas."
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
