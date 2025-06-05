@@ -47,6 +47,14 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
       return addMonths(purchase, 2);
     }
   };
+
+  // Função para calcular o valor da parcela
+  const calculateInstallmentValue = (expense: CardExpense) => {
+    if (!expense.is_installment || !expense.installments) {
+      return expense.amount;
+    }
+    return expense.amount / expense.installments;
+  };
   
   // Calcular faturas por cartão no mês atual
   const calculateBills = () => {
@@ -64,7 +72,10 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
         return correctBillingMonthStr === currentMonthStr;
       });
       
-      const totalAmount = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      // Somar apenas os valores das parcelas, não o valor total
+      const totalAmount = monthExpenses.reduce((sum, expense) => {
+        return sum + calculateInstallmentValue(expense);
+      }, 0);
       
       // Calcular data de vencimento da fatura
       const billDueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), card.due_date);
@@ -147,6 +158,9 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
                   <p className="font-bold text-lg">{formatters.currency(bill.totalAmount)}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     Venc: {formatters.date(bill.dueDate)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Soma das parcelas
                   </p>
                 </div>
                 

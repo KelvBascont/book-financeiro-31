@@ -40,6 +40,14 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
     }
   };
 
+  // Função para calcular o valor da parcela
+  const calculateInstallmentValue = (expense: CardExpense) => {
+    if (!expense.is_installment || !expense.installments) {
+      return expense.amount;
+    }
+    return expense.amount / expense.installments;
+  };
+
   // Filtrar despesas do cartão no mês atual
   const currentMonthStr = format(currentMonth, 'yyyy-MM');
   const filteredExpenses = cardExpenses.filter(expense => {
@@ -69,6 +77,13 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
   };
 
   const currentMonthName = format(currentMonth, 'MMMM/yyyy', { locale: ptBR });
+
+  // Calcular total da fatura considerando parcelas
+  const calculateBillTotal = () => {
+    return filteredExpenses.reduce((sum, expense) => {
+      return sum + calculateInstallmentValue(expense);
+    }, 0);
+  };
 
   if (filteredExpenses.length === 0) {
     return (
@@ -112,7 +127,7 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
               <TableRow>
                 <TableHead>Data da Compra</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Valor</TableHead>
+                <TableHead>Valor da Parcela</TableHead>
                 <TableHead>Parcela</TableHead>
                 <TableHead>Fatura</TableHead>
                 <TableHead>Ações</TableHead>
@@ -122,6 +137,7 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
               {filteredExpenses.map((expense) => {
                 // Calcular o mês correto da fatura para exibição
                 const correctBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
+                const installmentValue = calculateInstallmentValue(expense);
                 
                 return (
                   <TableRow key={expense.id}>
@@ -139,17 +155,19 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
                       <div className="font-medium">{expense.description}</div>
                       {expense.is_installment && (
                         <div className="text-xs text-blue-600 dark:text-blue-400">
-                          Parcelado em {expense.installments}x
+                          Total: {formatters.currency(expense.amount)} em {expense.installments}x
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <EditableExpenseCell
-                        value={expense.amount}
-                        isEditing={editingExpense === expense.id}
-                        onSave={(newValue) => handleUpdateExpense(expense.id, newValue)}
-                        onCancel={() => setEditingExpense(null)}
-                      />
+                      <div className="font-bold text-lg">
+                        {formatters.currency(installmentValue)}
+                      </div>
+                      {expense.is_installment && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Parcela atual
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -204,8 +222,11 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
               Total da Fatura ({currentMonthName}):
             </span>
             <span className="text-lg font-bold text-gray-900 dark:text-white">
-              {formatters.currency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
+              {formatters.currency(calculateBillTotal())}
             </span>
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Soma das parcelas do período atual
           </div>
         </div>
       </CardContent>

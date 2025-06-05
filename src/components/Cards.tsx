@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +34,26 @@ const Cards = () => {
     loading
   } = useSupabaseTables();
 
+  // Função para calcular o mês da fatura baseado na data de fechamento
+  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
+    const purchase = new Date(purchaseDate);
+    const purchaseDay = purchase.getDate();
+    
+    if (purchaseDay <= closingDate) {
+      return addMonths(purchase, 1);
+    } else {
+      return addMonths(purchase, 2);
+    }
+  };
+
+  // Função para calcular o valor da parcela
+  const calculateInstallmentValue = (expense: any) => {
+    if (!expense.is_installment || !expense.installments) {
+      return expense.amount;
+    }
+    return expense.amount / expense.installments;
+  };
+
   const handleAddCard = async (cardData: any) => {
     const result = await addCard(cardData);
     if (result) {
@@ -70,9 +89,33 @@ const Cards = () => {
 
   const getTotalExpenses = () => {
     const currentMonthStr = format(currentMonth, 'yyyy-MM');
+    
+    // Filtrar despesas que se enquadram na fatura do mês atual e somar apenas as parcelas
     return cardExpenses
-      .filter(expense => expense.billing_month.startsWith(currentMonthStr))
-      .reduce((total, expense) => total + expense.amount, 0);
+      .filter(expense => {
+        const card = cards.find(c => c.id === expense.card_id);
+        if (!card) return false;
+        
+        const correctBillingMonth = calculateBillingMonth(expense.purchase_date, card.closing_date);
+        const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
+        
+        return correctBillingMonthStr === currentMonthStr;
+      })
+      .reduce((total, expense) => total + calculateInstallmentValue(expense), 0);
+  };
+
+  const getMonthExpensesCount = () => {
+    const currentMonthStr = format(currentMonth, 'yyyy-MM');
+    
+    return cardExpenses.filter(expense => {
+      const card = cards.find(c => c.id === expense.card_id);
+      if (!card) return false;
+      
+      const correctBillingMonth = calculateBillingMonth(expense.purchase_date, card.closing_date);
+      const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
+      
+      return correctBillingMonthStr === currentMonthStr;
+    }).length;
   };
 
   const selectedCard = cards.find(card => card.id === selectedCardForDetails);
@@ -147,6 +190,9 @@ const Cards = () => {
             <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
               {formatters.currency(getTotalExpenses())}
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Soma das parcelas
+            </p>
           </div>
         </div>
       </div>
@@ -160,6 +206,9 @@ const Cards = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-300">Gastos do Mês</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatters.currency(getTotalExpenses())}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Soma das parcelas do período
                 </p>
               </div>
               <CreditCard className="h-8 w-8 text-orange-500" />
@@ -183,7 +232,7 @@ const Cards = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Compras do Mês</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {cardExpenses.filter(e => e.billing_month.startsWith(format(currentMonth, 'yyyy-MM'))).length}
+                  {getMonthExpensesCount()}
                 </p>
               </div>
               <Calendar className="h-8 w-8 text-green-500" />
@@ -210,7 +259,7 @@ const Cards = () => {
         onCancel={() => setShowAddExpense(false)}
       />
 
-      {/* Bills Overview - Substitui Cartões Cadastrados */}
+      {/* Bills Overview e Últimas Compras */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <BillsOverview
           cards={cards}
@@ -224,27 +273,38 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {cardExpenses.slice(0, 5).map((expense) => (
-                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{expense.description}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {cards.find(c => c.id === expense.card_id)?.name} • {formatters.date(expense.purchase_date)}
-                    </p>
-                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
-                      Fatura: {formatters.dateMonthYear(new Date(expense.billing_month))}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
-                    {expense.is_installment && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {expense.current_installment}/{expense.installments}
+              {cardExpenses.slice(0, 5).map((expense) => {
+                const card = cards.find(c => c.id === expense.card_id);
+                const installmentValue = calculateInstallmentValue(expense);
+                const correctBillingMonth = card ? calculateBillingMonth(expense.purchase_date, card.closing_date) : new Date(expense.billing_month);
+                
+                return (
+                  <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{expense.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {card?.name} • {formatters.date(expense.purchase_date)}
                       </p>
-                    )}
+                      <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
+                        Fatura: {formatters.dateMonthYear(correctBillingMonth)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">{formatters.currency(installmentValue)}</p>
+                      {expense.is_installment && (
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {expense.current_installment}/{expense.installments}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Total: {formatters.currency(expense.amount)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               
               {cardExpenses.length === 0 && (
                 <div className="text-center py-8">
