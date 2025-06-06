@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { format, addMonths } from 'date-fns';
 
 export interface CardExpense {
   id: string;
@@ -23,6 +24,18 @@ export const useCardExpenses = () => {
   const { toast } = useToast();
   const [cardExpenses, setCardExpenses] = useState<CardExpense[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Função para calcular o mês da fatura baseado na data de fechamento
+  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
+    const purchase = new Date(purchaseDate);
+    const purchaseDay = purchase.getDate();
+    
+    if (purchaseDay <= closingDate) {
+      return addMonths(purchase, 1);
+    } else {
+      return addMonths(purchase, 2);
+    }
+  };
 
   const fetchCardExpenses = async () => {
     if (!user) return;
@@ -48,19 +61,78 @@ export const useCardExpenses = () => {
   const addCardExpense = async (expense: Omit<CardExpense, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('card_expenses')
-        .insert([{ ...expense, user_id: user.id }])
-        .select()
+      // Buscar dados do cartão para obter a data de fechamento
+      const { data: cardData, error: cardError } = await supabase
+        .from('cards')
+        .select('closing_date')
+        .eq('id', expense.card_id)
         .single();
 
-      if (error) throw error;
-      setCardExpenses(prev => [data, ...prev]);
-      toast({
-        title: "Sucesso",
-        description: "Despesa de cartão adicionada com sucesso"
-      });
-      return data;
+      if (cardError) throw cardError;
+
+      const closingDate = cardData?.closing_date || 1;
+
+      if (expense.is_installment && expense.installments && expense.installments > 1) {
+        // Para compras parceladas, criar uma entrada para cada parcela
+        const installmentAmount = expense.amount / expense.installments;
+        const firstBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
+        
+        const installmentPromises = [];
+        
+        for (let i = 0; i < expense.installments; i++) {
+          const currentBillingMonth = addMonths(firstBillingMonth, i);
+          const installmentExpense = {
+            ...expense,
+            amount: installmentAmount,
+            current_installment: i + 1,
+            billing_month: format(currentBillingMonth, 'yyyy-MM-dd'),
+            user_id: user.id
+          };
+          
+          installmentPromises.push(
+            supabase
+              .from('card_expenses')
+              .insert([installmentExpense])
+              .select()
+              .single()
+          );
+        }
+
+        const results = await Promise.all(installmentPromises);
+        const newExpenses = results.map(result => result.data).filter(Boolean);
+        
+        setCardExpenses(prev => [...newExpenses, ...prev]);
+        
+        toast({
+          title: "Sucesso",
+          description: `Despesa parcelada adicionada com ${expense.installments} parcelas distribuídas`
+        });
+        
+        return newExpenses;
+      } else {
+        // Para compras à vista
+        const billingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
+        const singleExpense = {
+          ...expense,
+          current_installment: 1,
+          billing_month: format(billingMonth, 'yyyy-MM-dd'),
+          user_id: user.id
+        };
+
+        const { data, error } = await supabase
+          .from('card_expenses')
+          .insert([singleExpense])
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCardExpenses(prev => [data, ...prev]);
+        toast({
+          title: "Sucesso",
+          description: "Despesa de cartão adicionada com sucesso"
+        });
+        return data;
+      }
     } catch (error) {
       console.error('Error adding card expense:', error);
       toast({

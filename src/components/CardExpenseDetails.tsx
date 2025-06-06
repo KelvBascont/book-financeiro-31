@@ -8,7 +8,7 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseTables, CardExpense } from '@/hooks/useSupabaseTables';
 import EditableExpenseCell from './EditableExpenseCell';
 import CrudActions from './CrudActions';
-import { format, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface CardExpenseDetailsProps {
@@ -26,38 +26,15 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
   const currentCard = cards.find(card => card.id === cardId);
   const closingDate = currentCard?.closing_date || 1;
 
-  // Função para calcular o mês da fatura baseado na data de fechamento
-  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
-    const purchase = new Date(purchaseDate);
-    const purchaseDay = purchase.getDate();
-    
-    // Se a compra foi antes ou no dia do fechamento, vai para a fatura do mês seguinte
-    // Se foi depois do fechamento, vai para a fatura do mês posterior
-    if (purchaseDay <= closingDate) {
-      return addMonths(purchase, 1);
-    } else {
-      return addMonths(purchase, 2);
-    }
-  };
-
-  // Função para calcular o valor da parcela
-  const calculateInstallmentValue = (expense: CardExpense) => {
-    if (!expense.is_installment || !expense.installments) {
-      return expense.amount;
-    }
-    return expense.amount / expense.installments;
-  };
-
-  // Filtrar despesas do cartão no mês atual
+  // Filtrar despesas do cartão no mês atual (usando billing_month que já vem do banco)
   const currentMonthStr = format(currentMonth, 'yyyy-MM');
   const filteredExpenses = cardExpenses.filter(expense => {
     if (expense.card_id !== cardId) return false;
     
-    // Calcular o mês correto da fatura baseado na data de fechamento
-    const correctBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
-    const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
+    // Usar o billing_month que já vem calculado do banco de dados
+    const expenseBillingMonth = format(new Date(expense.billing_month), 'yyyy-MM');
     
-    return correctBillingMonthStr === currentMonthStr;
+    return expenseBillingMonth === currentMonthStr;
   });
 
   const handleUpdateExpense = async (expenseId: string, newAmount: number) => {
@@ -78,10 +55,10 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
 
   const currentMonthName = format(currentMonth, 'MMMM/yyyy', { locale: ptBR });
 
-  // Calcular total da fatura considerando parcelas
+  // Calcular total da fatura (agora já usa os valores das parcelas individuais)
   const calculateBillTotal = () => {
     return filteredExpenses.reduce((sum, expense) => {
-      return sum + calculateInstallmentValue(expense);
+      return sum + expense.amount;
     }, 0);
   };
 
@@ -135,10 +112,6 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
             </TableHeader>
             <TableBody>
               {filteredExpenses.map((expense) => {
-                // Calcular o mês correto da fatura para exibição
-                const correctBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
-                const installmentValue = calculateInstallmentValue(expense);
-                
                 return (
                   <TableRow key={expense.id}>
                     <TableCell>
@@ -155,13 +128,13 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
                       <div className="font-medium">{expense.description}</div>
                       {expense.is_installment && (
                         <div className="text-xs text-blue-600 dark:text-blue-400">
-                          Total: {formatters.currency(expense.amount)} em {expense.installments}x
+                          Parcelamento em {expense.installments}x
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="font-bold text-lg">
-                        {formatters.currency(installmentValue)}
+                        {formatters.currency(expense.amount)}
                       </div>
                       {expense.is_installment && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -180,7 +153,7 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">
-                        {formatters.dateMonthYear(correctBillingMonth)}
+                        {formatters.dateMonthYear(new Date(expense.billing_month))}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         Fatura atual
@@ -205,7 +178,7 @@ const CardExpenseDetails = ({ cardId, cardName, currentMonth = new Date() }: Car
                           showEdit={false}
                           showView={false}
                           deleteTitle="Confirmar exclusão"
-                          deleteDescription="Esta compra será permanentemente removida de todas as faturas."
+                          deleteDescription="Esta parcela será permanentemente removida."
                         />
                       </div>
                     </TableCell>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreditCard, AlertTriangle, Clock } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
-import { format, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Card {
@@ -34,47 +34,23 @@ interface BillsOverviewProps {
 const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps) => {
   const formatters = useFormatters();
   
-  // Função para calcular o mês da fatura baseado na data de fechamento
-  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
-    const purchase = new Date(purchaseDate);
-    const purchaseDay = purchase.getDate();
-    
-    // Se a compra foi antes ou no dia do fechamento, vai para a fatura do mês seguinte
-    // Se foi depois do fechamento, vai para a fatura do mês posterior
-    if (purchaseDay <= closingDate) {
-      return addMonths(purchase, 1);
-    } else {
-      return addMonths(purchase, 2);
-    }
-  };
-
-  // Função para calcular o valor da parcela
-  const calculateInstallmentValue = (expense: CardExpense) => {
-    if (!expense.is_installment || !expense.installments) {
-      return expense.amount;
-    }
-    return expense.amount / expense.installments;
-  };
-  
   // Calcular faturas por cartão no mês atual
   const calculateBills = () => {
     const currentMonthStr = format(currentMonth, 'yyyy-MM');
     
     return cards.map(card => {
       // Filtrar despesas do cartão que se enquadram na fatura do mês atual
+      // Agora usar billing_month que já vem calculado corretamente do banco
       const monthExpenses = cardExpenses.filter(expense => {
         if (expense.card_id !== card.id) return false;
         
-        // Calcular o mês correto da fatura baseado na data de fechamento
-        const correctBillingMonth = calculateBillingMonth(expense.purchase_date, card.closing_date);
-        const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
-        
-        return correctBillingMonthStr === currentMonthStr;
+        const expenseBillingMonth = format(new Date(expense.billing_month), 'yyyy-MM');
+        return expenseBillingMonth === currentMonthStr;
       });
       
-      // Somar apenas os valores das parcelas, não o valor total
+      // Somar os valores das parcelas (amount já é o valor da parcela individual)
       const totalAmount = monthExpenses.reduce((sum, expense) => {
-        return sum + calculateInstallmentValue(expense);
+        return sum + expense.amount;
       }, 0);
       
       // Calcular data de vencimento da fatura
@@ -147,7 +123,7 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
                   <div>
                     <p className="font-medium">{bill.cardName}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {bill.expensesCount} compra{bill.expensesCount !== 1 ? 's' : ''}
+                      {bill.expensesCount} parcela{bill.expensesCount !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </div>
@@ -160,7 +136,7 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
                     Venc: {formatters.date(bill.dueDate)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Soma das parcelas
+                    Parcelas do mês
                   </p>
                 </div>
                 
