@@ -66,6 +66,21 @@ const Cards = () => {
     // Por enquanto, apenas fechar o modal
   };
 
+  const handleCardFormSubmit = (cardData: any) => {
+    if (editingCard) {
+      updateCard(editingCard.id, cardData);
+    } else {
+      addCard(cardData);
+    }
+    setShowCardForm(false);
+    setEditingCard(null);
+  };
+
+  const handleCardFormCancel = () => {
+    setShowCardForm(false);
+    setEditingCard(null);
+  };
+
   const selectedCard = selectedCardId ? cards.find(card => card.id === selectedCardId) : null;
 
   return (
@@ -248,16 +263,12 @@ const Cards = () => {
         onConfirmPayment={handleConfirmPayment}
       />
 
-      {showCardForm && (
-        <CardForm
-          card={editingCard}
-          onSave={editingCard ? updateCard : addCard}
-          onCancel={() => {
-            setShowCardForm(false);
-            setEditingCard(null);
-          }}
-        />
-      )}
+      <CardForm
+        showForm={showCardForm}
+        editingCard={editingCard}
+        onSubmit={handleCardFormSubmit}
+        onCancel={handleCardFormCancel}
+      />
     </div>
   );
 };
