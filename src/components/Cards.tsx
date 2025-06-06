@@ -1,353 +1,261 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, CreditCard, Calendar, TrendingUp } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useFormatters } from '@/hooks/useFormatters';
+import { Plus, CreditCard } from 'lucide-react';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
-import CardForm from '@/components/cards/CardForm';
-import ExpenseForm from '@/components/cards/ExpenseForm';
-import BillsOverview from '@/components/cards/BillsOverview';
-import CardsModal from '@/components/cards/CardsModal';
-import CardExpenseDetails from '@/components/CardExpenseDetails';
-import { format, subMonths, addMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useCardExpenses } from '@/hooks/useCardExpenses';
+import { useFormatters } from '@/hooks/useFormatters';
+import { format } from 'date-fns';
+import BillsOverview from './cards/BillsOverview';
+import CardExpenseDetails from './CardExpenseDetails';
+import ExpenseModal from './cards/ExpenseModal';
+import PayBillModal from './cards/PayBillModal';
+import CardsModal from './cards/CardsModal';
+import CardForm from './cards/CardForm';
 
 const Cards = () => {
-  const { toast } = useToast();
   const formatters = useFormatters();
-  const [showAddCard, setShowAddCard] = useState(false);
-  const [showAddExpense, setShowAddExpense] = useState(false);
-  const [editingCard, setEditingCard] = useState<any>(null);
-  const [selectedCardForDetails, setSelectedCardForDetails] = useState<string>('');
+  const { cards, addCard, updateCard, deleteCard } = useSupabaseTables();
+  const { cardExpenses, addCardExpense } = useCardExpenses();
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [editingCard, setEditingCard] = useState(null);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showPayBillModal, setShowPayBillModal] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+
+  const currentMonthStr = format(currentMonth, 'yyyy-MM');
   
-  const {
-    cards,
-    cardExpenses,
-    addCard,
-    updateCard,
-    deleteCard,
-    addCardExpense,
-    loading
-  } = useSupabaseTables();
+  // Calcular últimas 5 compras
+  const recentExpenses = cardExpenses
+    .filter(expense => {
+      const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
+      return expenseMonth === currentMonthStr;
+    })
+    .sort((a, b) => new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime())
+    .slice(0, 5);
 
-  // Função para calcular o mês da fatura baseado na data de fechamento
-  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
-    const purchase = new Date(purchaseDate);
-    const purchaseDay = purchase.getDate();
-    
-    if (purchaseDay <= closingDate) {
-      return addMonths(purchase, 1);
-    } else {
-      return addMonths(purchase, 2);
-    }
-  };
+  // Gastos do mês atual
+  const monthlySpending = cardExpenses
+    .filter(expense => {
+      const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
+      return expenseMonth === currentMonthStr;
+    })
+    .reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Função para calcular o valor da parcela
-  const calculateInstallmentValue = (expense: any) => {
-    if (!expense.is_installment || !expense.installments) {
-      return expense.amount;
-    }
-    return expense.amount / expense.installments;
-  };
-
-  const handleAddCard = async (cardData: any) => {
-    const result = await addCard(cardData);
-    if (result) {
-      setShowAddCard(false);
-    }
+  const handleAddCard = () => {
+    setEditingCard(null);
+    setShowCardForm(true);
   };
 
   const handleEditCard = (card: any) => {
     setEditingCard(card);
-    setShowAddCard(true);
+    setShowCardForm(true);
   };
 
-  const handleUpdateCard = async (cardData: any) => {
-    if (!editingCard) return;
-    
-    const result = await updateCard(editingCard.id, cardData);
-    if (result) {
-      setShowAddCard(false);
-      setEditingCard(null);
-    }
+  const handlePayBill = (bill: any) => {
+    setSelectedBill(bill);
+    setShowPayBillModal(true);
   };
 
-  const handleDeleteCard = async (id: string) => {
-    await deleteCard(id);
+  const handleConfirmPayment = (cardId: string, amount: number, paymentDate: string) => {
+    // TODO: Implementar lógica de pagamento na base de dados
+    console.log('Pagamento confirmado:', { cardId, amount, paymentDate });
+    // Por enquanto, apenas fechar o modal
   };
 
-  const handleAddExpense = async (expenseData: any) => {
-    const result = await addCardExpense(expenseData);
-    if (result) {
-      setShowAddExpense(false);
-    }
-  };
-
-  const getTotalExpenses = () => {
-    const currentMonthStr = format(currentMonth, 'yyyy-MM');
-    
-    // Filtrar despesas que se enquadram na fatura do mês atual e somar apenas as parcelas
-    return cardExpenses
-      .filter(expense => {
-        const card = cards.find(c => c.id === expense.card_id);
-        if (!card) return false;
-        
-        const correctBillingMonth = calculateBillingMonth(expense.purchase_date, card.closing_date);
-        const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
-        
-        return correctBillingMonthStr === currentMonthStr;
-      })
-      .reduce((total, expense) => total + calculateInstallmentValue(expense), 0);
-  };
-
-  const getMonthExpensesCount = () => {
-    const currentMonthStr = format(currentMonth, 'yyyy-MM');
-    
-    return cardExpenses.filter(expense => {
-      const card = cards.find(c => c.id === expense.card_id);
-      if (!card) return false;
-      
-      const correctBillingMonth = calculateBillingMonth(expense.purchase_date, card.closing_date);
-      const correctBillingMonthStr = format(correctBillingMonth, 'yyyy-MM');
-      
-      return correctBillingMonthStr === currentMonthStr;
-    }).length;
-  };
-
-  const selectedCard = cards.find(card => card.id === selectedCardForDetails);
-  const currentMonthName = format(currentMonth, 'MMMM/yyyy', { locale: ptBR });
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentMonth(prev => 
-      direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
-        </div>
-      </div>
-    );
-  }
+  const selectedCard = selectedCardId ? cards.find(card => card.id === selectedCardId) : null;
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gestão de Cartões</h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Controle de gastos e faturas de cartões</p>
-        </div>
+    <div className="space-y-6">
+      {/* Header com estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                <CreditCard className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Gastos do Mês</p>
+                <p className="text-2xl font-bold">{formatters.currency(monthlySpending)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <CreditCard className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Cartões Ativos</p>
+                <p className="text-2xl font-bold">{cards.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <CreditCard className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Compras do Mês</p>
+                <p className="text-2xl font-bold">{recentExpenses.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Controles */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold">Gestão de Cartões</h2>
         <div className="flex flex-col sm:flex-row gap-2">
-          <CardsModal
-            cards={cards}
-            onEditCard={handleEditCard}
-            onDeleteCard={handleDeleteCard}
-            onAddCard={() => setShowAddCard(true)}
-          />
-          <Button 
-            onClick={() => setShowAddExpense(!showAddExpense)} 
-            className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+          <Button
+            onClick={() => setShowExpenseModal(true)}
+            className="bg-orange-500 hover:bg-orange-600"
             disabled={cards.length === 0}
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova Despesa
           </Button>
+          <CardsModal
+            cards={cards}
+            onEditCard={handleEditCard}
+            onDeleteCard={deleteCard}
+            onAddCard={handleAddCard}
+          />
         </div>
       </div>
 
-      {/* Navegação de mês e resumo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('prev')}
-          >
-            ←
-          </Button>
-          <h3 className="text-lg font-semibold capitalize">{currentMonthName}</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('next')}
-          >
-            →
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-            <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-              {formatters.currency(getTotalExpenses())}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Soma das parcelas
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Resumo dos gastos */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Gastos do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatters.currency(getTotalExpenses())}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Soma das parcelas do período
-                </p>
-              </div>
-              <CreditCard className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Cartões Ativos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cards.length}</p>
-              </div>
-              <CreditCard className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Compras do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {getMonthExpensesCount()}
-                </p>
-              </div>
-              <Calendar className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Card Forms */}
-      <CardForm
-        showForm={showAddCard}
-        editingCard={editingCard}
-        onSubmit={editingCard ? handleUpdateCard : handleAddCard}
-        onCancel={() => {
-          setShowAddCard(false);
-          setEditingCard(null);
-        }}
-      />
-
-      <ExpenseForm
-        showForm={showAddExpense}
+      {/* Faturas Overview */}
+      <BillsOverview
         cards={cards}
-        onSubmit={handleAddExpense}
-        onCancel={() => setShowAddExpense(false)}
+        cardExpenses={cardExpenses}
+        currentMonth={currentMonth}
+        onPayBill={handlePayBill}
       />
 
-      {/* Bills Overview e Últimas Compras */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <BillsOverview
-          cards={cards}
-          cardExpenses={cardExpenses}
-          currentMonth={currentMonth}
-        />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Últimas Compras</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {cardExpenses.slice(0, 5).map((expense) => {
-                const card = cards.find(c => c.id === expense.card_id);
-                const installmentValue = calculateInstallmentValue(expense);
-                const correctBillingMonth = card ? calculateBillingMonth(expense.purchase_date, card.closing_date) : new Date(expense.billing_month);
-                
-                return (
-                  <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{expense.description}</p>
+      {/* Últimas Compras */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Últimas Compras</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {recentExpenses.map((expense) => {
+              const card = cards.find(c => c.id === expense.card_id);
+              return (
+                <div key={expense.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{expense.description}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
                         {card?.name} • {formatters.date(expense.purchase_date)}
                       </p>
-                      <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mt-1">
-                        Fatura: {formatters.dateMonthYear(correctBillingMonth)}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">{formatters.currency(installmentValue)}</p>
-                      {expense.is_installment && (
-                        <div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {expense.current_installment}/{expense.installments}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Total: {formatters.currency(expense.amount)}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
-                );
-              })}
-              
-              {cardExpenses.length === 0 && (
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">Nenhuma compra registrada</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Clique em "Nova Despesa" para começar</p>
+                  <div className="text-right">
+                    <p className="font-bold">{formatters.currency(expense.amount)}</p>
+                    <p className="text-xs text-gray-500">
+                      Fatura: {formatters.dateMonthYear(new Date(expense.billing_month))}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Seção para seleção de cartão e visualização detalhada */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Selecionar cartão para ver despesas detalhadas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <Label htmlFor="cardSelect">Cartão</Label>
-            <Select value={selectedCardForDetails} onValueChange={setSelectedCardForDetails}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cartão para ver suas despesas detalhadas" />
-              </SelectTrigger>
-              <SelectContent>
-                {cards.map((card) => (
-                  <SelectItem key={card.id} value={card.id}>
-                    {card.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              );
+            })}
+            
+            {recentExpenses.length === 0 && (
+              <div className="text-center py-8">
+                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Nenhuma compra este mês</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  Suas compras aparecerão aqui
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Despesas detalhadas do cartão selecionado */}
-      {selectedCard && (
-        <CardExpenseDetails 
-          cardId={selectedCard.id} 
+      {/* Despesas Detalhadas por Cartão */}
+      {selectedCardId && selectedCard && (
+        <CardExpenseDetails
+          cardId={selectedCardId}
           cardName={selectedCard.name}
           currentMonth={currentMonth}
+        />
+      )}
+
+      {/* Seletor de cartão para detalhes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ver Despesas por Cartão</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {cards.map((card) => (
+              <Button
+                key={card.id}
+                variant={selectedCardId === card.id ? "default" : "outline"}
+                onClick={() => setSelectedCardId(card.id)}
+                className="justify-start h-auto p-4"
+              >
+                <CreditCard className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <p className="font-medium">{card.name}</p>
+                  <p className="text-sm opacity-70">
+                    Fecha dia {card.closing_date}
+                  </p>
+                </div>
+              </Button>
+            ))}
+            
+            {cards.length === 0 && (
+              <div className="col-span-full text-center py-8">
+                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Nenhum cartão cadastrado</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  Cadastre um cartão para ver as despesas
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Modais */}
+      <ExpenseModal
+        open={showExpenseModal}
+        onOpenChange={setShowExpenseModal}
+        cards={cards}
+        onSubmit={addCardExpense}
+      />
+
+      <PayBillModal
+        open={showPayBillModal}
+        onOpenChange={setShowPayBillModal}
+        bill={selectedBill}
+        onConfirmPayment={handleConfirmPayment}
+      />
+
+      {showCardForm && (
+        <CardForm
+          card={editingCard}
+          onSave={editingCard ? updateCard : addCard}
+          onCancel={() => {
+            setShowCardForm(false);
+            setEditingCard(null);
+          }}
         />
       )}
     </div>

@@ -29,9 +29,10 @@ interface BillsOverviewProps {
   cards: Card[];
   cardExpenses: CardExpense[];
   currentMonth: Date;
+  onPayBill?: (bill: any) => void;
 }
 
-const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps) => {
+const BillsOverview = ({ cards, cardExpenses, currentMonth, onPayBill }: BillsOverviewProps) => {
   const formatters = useFormatters();
   
   // Calcular faturas por cartão no mês atual
@@ -40,7 +41,6 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
     
     return cards.map(card => {
       // Filtrar despesas do cartão que se enquadram na fatura do mês atual
-      // Agora usar billing_month que já vem calculado corretamente do banco
       const monthExpenses = cardExpenses.filter(expense => {
         if (expense.card_id !== card.id) return false;
         
@@ -62,7 +62,6 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
       if (billDueDate < today) {
         status = 'overdue';
       }
-      // TODO: Aqui poderia ter lógica para verificar se está pago baseado em uma tabela de pagamentos
       
       return {
         cardId: card.id,
@@ -102,6 +101,12 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
         return 'text-red-600 dark:text-red-400';
       default:
         return 'text-orange-600 dark:text-orange-400';
+    }
+  };
+
+  const handlePayBill = (bill: any) => {
+    if (onPayBill) {
+      onPayBill(bill);
     }
   };
 
@@ -150,6 +155,7 @@ const BillsOverview = ({ cards, cardExpenses, currentMonth }: BillsOverviewProps
                       variant="default" 
                       size="sm"
                       className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handlePayBill(bill)}
                     >
                       Pagar
                     </Button>
