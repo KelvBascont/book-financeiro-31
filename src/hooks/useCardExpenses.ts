@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,13 +72,14 @@ export const useCardExpenses = () => {
       const closingDate = cardData?.closing_date || 1;
 
       if (expense.is_installment && expense.installments && expense.installments > 1) {
-        // Para compras parceladas, criar uma entrada para cada parcela
+        // Para compras parceladas, criar uma entrada para cada parcela em seu respectivo mês
         const installmentAmount = expense.amount / expense.installments;
         const firstBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
         
         const installmentPromises = [];
         
         for (let i = 0; i < expense.installments; i++) {
+          // Cada parcela vai para um mês diferente (sequencial)
           const currentBillingMonth = addMonths(firstBillingMonth, i);
           const installmentExpense = {
             ...expense,
@@ -105,7 +105,7 @@ export const useCardExpenses = () => {
         
         toast({
           title: "Sucesso",
-          description: `Despesa parcelada adicionada com ${expense.installments} parcelas distribuídas`
+          description: `Despesa parcelada adicionada com ${expense.installments} parcelas distribuídas pelos próximos meses`
         });
         
         return newExpenses;
