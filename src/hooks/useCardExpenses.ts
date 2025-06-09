@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,12 +35,7 @@ export const useCardExpenses = () => {
 
     // Se a compra foi feita até o dia de fechamento (inclusive)
     if (purchaseDay <= closingDay) {
-      // A fatura é do mesmo mês da compra
-      billingMonth = purchaseMonth;
-      billingYear = purchaseYear;
-    } else {
-      // Se a compra foi feita após o dia de fechamento
-      // A fatura é do mês seguinte
+      // A fatura é do mês SEGUINTE à compra
       billingMonth = purchaseMonth + 1;
       billingYear = purchaseYear;
       
@@ -50,9 +44,20 @@ export const useCardExpenses = () => {
         billingMonth = 0;
         billingYear++;
       }
+    } else {
+      // Se a compra foi feita após o dia de fechamento
+      // A fatura é do mês seguinte + 1 (dois meses à frente)
+      billingMonth = purchaseMonth + 2;
+      billingYear = purchaseYear;
+      
+      // Ajustar virada de ano
+      if (billingMonth > 11) {
+        billingYear += Math.floor(billingMonth / 12);
+        billingMonth = billingMonth % 12;
+      }
     }
 
-    // Retorna a data de vencimento da fatura (primeiro dia do mês de cobrança)
+    // Retorna a data da fatura (primeiro dia do mês de cobrança)
     return new Date(billingYear, billingMonth, 1);
   };
 

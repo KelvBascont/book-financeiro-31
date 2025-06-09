@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ExpenseModalProps {
   open: boolean;
@@ -41,12 +41,7 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
 
     // Se a compra foi feita até o dia de fechamento (inclusive)
     if (purchaseDay <= closingDay) {
-      // A fatura é do mesmo mês da compra
-      billingMonth = purchaseMonth;
-      billingYear = purchaseYear;
-    } else {
-      // Se a compra foi feita após o dia de fechamento
-      // A fatura é do mês seguinte
+      // A fatura é do mês SEGUINTE à compra
       billingMonth = purchaseMonth + 1;
       billingYear = purchaseYear;
       
@@ -55,9 +50,20 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
         billingMonth = 0;
         billingYear++;
       }
+    } else {
+      // Se a compra foi feita após o dia de fechamento
+      // A fatura é do mês seguinte + 1 (dois meses à frente)
+      billingMonth = purchaseMonth + 2;
+      billingYear = purchaseYear;
+      
+      // Ajustar virada de ano
+      if (billingMonth > 11) {
+        billingYear += Math.floor(billingMonth / 12);
+        billingMonth = billingMonth % 12;
+      }
     }
 
-    // Retorna a data de vencimento da fatura (primeiro dia do mês de cobrança)
+    // Retorna a data da fatura (primeiro dia do mês de cobrança)
     return new Date(billingYear, billingMonth, 1);
   };
 
@@ -212,8 +218,10 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
               <span className="text-sm text-blue-800 dark:text-blue-200">
                 Esta despesa será cobrada na fatura de{' '}
                 <strong>
-                  {formatters.dateMonthYear(
-                    calculateBillingMonth(expenseForm.purchase_date, selectedCard.closing_date)
+                  {format(
+                    calculateBillingMonth(expenseForm.purchase_date, selectedCard.closing_date),
+                    'MMMM/yyyy',
+                    { locale: ptBR }
                   )}
                 </strong>
               </span>
