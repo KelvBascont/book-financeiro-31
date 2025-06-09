@@ -25,18 +25,35 @@ export const useCardExpenses = () => {
   const [cardExpenses, setCardExpenses] = useState<CardExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Função corrigida para calcular o mês da fatura baseado na data de fechamento
-  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
+  // Função CORRETA para calcular o mês da fatura
+  const calculateBillingMonth = (purchaseDate: string, closingDay: number) => {
     const purchase = new Date(purchaseDate);
     const purchaseDay = purchase.getDate();
-    
-    // Se a compra foi feita ANTES ou NO dia do fechamento, vai para a fatura do mês seguinte
-    // Se a compra foi feita DEPOIS do fechamento, vai para a fatura de dois meses à frente
-    if (purchaseDay <= closingDate) {
-      return addMonths(purchase, 1);
+    const purchaseMonth = purchase.getMonth();
+    const purchaseYear = purchase.getFullYear();
+
+    let billingMonth, billingYear;
+
+    // Se a compra foi feita até o dia de fechamento (inclusive)
+    if (purchaseDay <= closingDay) {
+      // A fatura é do mesmo mês da compra
+      billingMonth = purchaseMonth;
+      billingYear = purchaseYear;
     } else {
-      return addMonths(purchase, 2);
+      // Se a compra foi feita após o dia de fechamento
+      // A fatura é do mês seguinte
+      billingMonth = purchaseMonth + 1;
+      billingYear = purchaseYear;
+      
+      // Se passou de dezembro, vai para janeiro do próximo ano
+      if (billingMonth > 11) {
+        billingMonth = 0;
+        billingYear++;
+      }
     }
+
+    // Retorna a data de vencimento da fatura (primeiro dia do mês de cobrança)
+    return new Date(billingYear, billingMonth, 1);
   };
 
   const fetchCardExpenses = async () => {
@@ -75,7 +92,7 @@ export const useCardExpenses = () => {
       const closingDate = cardData?.closing_date || 1;
 
       if (expense.is_installment && expense.installments && expense.installments > 1) {
-        // Para compras parceladas, criar uma entrada para cada parcela em seu respectivo mês
+        // Para compras parceladas, criar uma entrada para cada parcela
         const installmentAmount = expense.amount / expense.installments;
         const firstBillingMonth = calculateBillingMonth(expense.purchase_date, closingDate);
         
@@ -148,6 +165,29 @@ export const useCardExpenses = () => {
 
   const updateCardExpense = async (id: string, updates: Partial<CardExpense>) => {
     try {
+      // Se estiver atualizando a data de compra, recalcular o billing_month
+      if (updates.purchase_date) {
+        const { data: expenseData, error: expenseError } = await supabase
+          .from('card_expenses')
+          .select('card_id')
+          .eq('id', id)
+          .single();
+
+        if (expenseError) throw expenseError;
+
+        const { data: cardData, error: cardError } = await supabase
+          .from('cards')
+          .select('closing_date')
+          .eq('id', expenseData.card_id)
+          .single();
+
+        if (cardError) throw cardError;
+
+        const closingDate = cardData?.closing_date || 1;
+        const newBillingMonth = calculateBillingMonth(updates.purchase_date, closingDate);
+        updates.billing_month = format(newBillingMonth, 'yyyy-MM-dd');
+      }
+
       const { data, error } = await supabase
         .from('card_expenses')
         .update(updates)

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,8 @@ import ExpenseModal from './cards/ExpenseModal';
 import PayBillModal from './cards/PayBillModal';
 import CardsModal from './cards/CardsModal';
 import CardForm from './cards/CardForm';
+import ViewExpenseModal from './cards/ViewExpenseModal';
+import EditExpenseModal from './cards/EditExpenseModal';
 import CrudActions from './CrudActions';
 import {
   Dialog,
@@ -32,9 +33,14 @@ const Cards = () => {
   const [showPayBillModal, setShowPayBillModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedCardForDetails, setSelectedCardForDetails] = useState('');
-  const [paidBills, setPaidBills] = useState(new Set()); // Estado para controlar faturas pagas
+  const [paidBills, setPaidBills] = useState(new Set());
   const [editingBill, setEditingBill] = useState(null);
   const [showEditBillModal, setShowEditBillModal] = useState(false);
+  
+  // Estados para os modais CRUD das despesas
+  const [showViewExpenseModal, setShowViewExpenseModal] = useState(false);
+  const [showEditExpenseModal, setShowEditExpenseModal] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
 
   const currentMonthStr = format(selectedMonth, 'yyyy-MM');
   
@@ -129,9 +135,24 @@ const Cards = () => {
   };
 
   // Funções CRUD para despesas detalhadas
+  const handleViewExpense = (expense: any) => {
+    setSelectedExpense(expense);
+    setShowViewExpenseModal(true);
+  };
+
   const handleEditExpense = (expense: any) => {
-    // Implementar modal de edição de despesa
-    console.log('Editando despesa:', expense);
+    setSelectedExpense(expense);
+    setShowEditExpenseModal(true);
+  };
+
+  const handleSaveEditedExpense = async (expenseId: string, updates: any) => {
+    try {
+      await updateCardExpense(expenseId, updates);
+      setShowEditExpenseModal(false);
+      setSelectedExpense(null);
+    } catch (error) {
+      console.error('Erro ao salvar despesa editada:', error);
+    }
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
@@ -140,11 +161,6 @@ const Cards = () => {
     } catch (error) {
       console.error('Erro ao deletar despesa:', error);
     }
-  };
-
-  const handleViewExpense = (expense: any) => {
-    // Implementar visualização detalhada da despesa
-    console.log('Visualizando despesa:', expense);
   };
 
   // Filtrar despesas do mês selecionado para últimas compras
@@ -557,7 +573,20 @@ const Cards = () => {
         onCancel={handleCardFormCancel}
       />
 
-      {/* Modal de Edição de Fatura */}
+      <ViewExpenseModal
+        open={showViewExpenseModal}
+        onOpenChange={setShowViewExpenseModal}
+        expense={selectedExpense}
+        cardName={selectedExpense ? cards.find(c => c.id === selectedExpense.card_id)?.name : ''}
+      />
+
+      <EditExpenseModal
+        open={showEditExpenseModal}
+        onOpenChange={setShowEditExpenseModal}
+        expense={selectedExpense}
+        onSave={handleSaveEditedExpense}
+      />
+
       <Dialog open={showEditBillModal} onOpenChange={setShowEditBillModal}>
         <DialogContent>
           <DialogHeader>

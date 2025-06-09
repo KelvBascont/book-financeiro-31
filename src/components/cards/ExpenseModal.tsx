@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 
 interface ExpenseModalProps {
   open: boolean;
@@ -30,17 +30,35 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
     installments: '',
   });
 
-  const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
+  // Função CORRETA para calcular o mês da fatura
+  const calculateBillingMonth = (purchaseDate: string, closingDay: number) => {
     const purchase = new Date(purchaseDate);
     const purchaseDay = purchase.getDate();
-    
-    // Correção da lógica: se compra é APÓS fechamento, vai para mês seguinte
-    // se compra é ANTES/NO fechamento, vai para mês atual + 1
-    if (purchaseDay > closingDate) {
-      return addMonths(purchase, 1);
+    const purchaseMonth = purchase.getMonth();
+    const purchaseYear = purchase.getFullYear();
+
+    let billingMonth, billingYear;
+
+    // Se a compra foi feita até o dia de fechamento (inclusive)
+    if (purchaseDay <= closingDay) {
+      // A fatura é do mesmo mês da compra
+      billingMonth = purchaseMonth;
+      billingYear = purchaseYear;
     } else {
-      return addMonths(purchase, 1);
+      // Se a compra foi feita após o dia de fechamento
+      // A fatura é do mês seguinte
+      billingMonth = purchaseMonth + 1;
+      billingYear = purchaseYear;
+      
+      // Se passou de dezembro, vai para janeiro do próximo ano
+      if (billingMonth > 11) {
+        billingMonth = 0;
+        billingYear++;
+      }
     }
+
+    // Retorna a data de vencimento da fatura (primeiro dia do mês de cobrança)
+    return new Date(billingYear, billingMonth, 1);
   };
 
   const handleSubmit = () => {
