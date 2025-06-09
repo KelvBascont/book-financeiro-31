@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import ExpenseModal from './cards/ExpenseModal';
 import PayBillModal from './cards/PayBillModal';
 import CardsModal from './cards/CardsModal';
 import CardForm from './cards/CardForm';
+import CrudActions from './CrudActions';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,7 @@ import {
 const Cards = () => {
   const formatters = useFormatters();
   const { cards, addCard, updateCard, deleteCard } = useSupabaseTables();
-  const { cardExpenses, addCardExpense } = useCardExpenses();
+  const { cardExpenses, addCardExpense, updateCardExpense, deleteCardExpense } = useCardExpenses();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showCardForm, setShowCardForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
@@ -30,6 +32,9 @@ const Cards = () => {
   const [showPayBillModal, setShowPayBillModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedCardForDetails, setSelectedCardForDetails] = useState('');
+  const [paidBills, setPaidBills] = useState(new Set()); // Estado para controlar faturas pagas
+  const [editingBill, setEditingBill] = useState(null);
+  const [showEditBillModal, setShowEditBillModal] = useState(false);
 
   const currentMonthStr = format(selectedMonth, 'yyyy-MM');
   
@@ -61,9 +66,12 @@ const Cards = () => {
     return cards.map(card => {
       const stats = getCardStats(card);
       const today = new Date();
+      const billKey = `${card.id}-${currentMonthStr}`;
       let status: 'pending' | 'overdue' | 'paid' = 'pending';
       
-      if (stats.dueDate < today && stats.currentBill > 0) {
+      if (paidBills.has(billKey)) {
+        status = 'paid';
+      } else if (stats.dueDate < today && stats.currentBill > 0) {
         status = 'overdue';
       }
       
@@ -94,14 +102,15 @@ const Cards = () => {
   };
 
   const handleConfirmPayment = (cardId: string, amount: number, paymentDate: string) => {
-    console.log('Pagamento confirmado:', { cardId, amount, paymentDate });
+    const billKey = `${cardId}-${currentMonthStr}`;
+    setPaidBills(prev => new Set([...prev, billKey]));
     setShowPayBillModal(false);
     setSelectedBill(null);
   };
 
   const handleEditBill = (bill: any) => {
-    // Implementar edição da fatura
-    console.log('Editar fatura:', bill);
+    setEditingBill(bill);
+    setShowEditBillModal(true);
   };
 
   const handleCardFormSubmit = (cardData: any) => {
@@ -119,6 +128,25 @@ const Cards = () => {
     setEditingCard(null);
   };
 
+  // Funções CRUD para despesas detalhadas
+  const handleEditExpense = (expense: any) => {
+    // Implementar modal de edição de despesa
+    console.log('Editando despesa:', expense);
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      await deleteCardExpense(expenseId);
+    } catch (error) {
+      console.error('Erro ao deletar despesa:', error);
+    }
+  };
+
+  const handleViewExpense = (expense: any) => {
+    // Implementar visualização detalhada da despesa
+    console.log('Visualizando despesa:', expense);
+  };
+
   // Filtrar despesas do mês selecionado para últimas compras
   const monthlyExpenses = cardExpenses.filter(expense => {
     const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
@@ -131,6 +159,28 @@ const Cards = () => {
     : monthlyExpenses;
 
   const selectedCard = cards.find(c => c.id === selectedCardForDetails);
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'Pago';
+      case 'overdue':
+        return 'Vencido';
+      default:
+        return 'Pendente';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'text-green-400';
+      case 'overdue':
+        return 'text-red-400';
+      default:
+        return 'text-orange-400';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 space-y-6">
@@ -276,29 +326,29 @@ const Cards = () => {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${
-                          bill.status === 'overdue' ? 'text-red-400' : 'text-orange-400'
-                        }`}>
-                          {bill.status === 'overdue' ? 'Vencido' : 'Pendente'}
+                        <span className={`text-sm font-medium ${getStatusColor(bill.status)}`}>
+                          {getStatusText(bill.status)}
                         </span>
                         
-                        <div className="flex gap-1">
-                          <Button 
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => handlePayBill(bill)}
-                          >
-                            Pagar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="border-gray-600 text-white hover:bg-gray-700"
-                            onClick={() => handleEditBill(bill)}
-                          >
-                            Editar
-                          </Button>
-                        </div>
+                        {bill.status !== 'paid' && (
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => handlePayBill(bill)}
+                            >
+                              Pagar
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-600 text-white hover:bg-gray-700"
+                              onClick={() => handleEditBill(bill)}
+                            >
+                              Editar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -451,14 +501,18 @@ const Cards = () => {
                         </div>
                       </td>
                       <td className="py-3 text-center">
-                        <div className="flex gap-1 justify-center">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-400 hover:bg-blue-600/20">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:bg-red-600/20">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <CrudActions
+                          item={expense}
+                          onView={handleViewExpense}
+                          onEdit={handleEditExpense}
+                          onDelete={() => handleDeleteExpense(expense.id)}
+                          showView={true}
+                          showEdit={true}
+                          showDelete={true}
+                          deleteTitle="Confirmar exclusão"
+                          deleteDescription="Esta parcela será permanentemente removida."
+                          size="sm"
+                        />
                       </td>
                     </tr>
                   ))}
@@ -502,6 +556,28 @@ const Cards = () => {
         onSubmit={handleCardFormSubmit}
         onCancel={handleCardFormCancel}
       />
+
+      {/* Modal de Edição de Fatura */}
+      <Dialog open={showEditBillModal} onOpenChange={setShowEditBillModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Fatura - {editingBill?.cardName}</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p className="text-sm text-gray-600 mb-4">
+              Funcionalidade de edição de fatura será implementada em breve.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowEditBillModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => setShowEditBillModal(false)}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
