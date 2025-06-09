@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,11 +25,13 @@ export const useCardExpenses = () => {
   const [cardExpenses, setCardExpenses] = useState<CardExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Função para calcular o mês da fatura baseado na data de fechamento
+  // Função corrigida para calcular o mês da fatura baseado na data de fechamento
   const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
     const purchase = new Date(purchaseDate);
     const purchaseDay = purchase.getDate();
     
+    // Se a compra foi feita ANTES ou NO dia do fechamento, vai para a fatura do mês seguinte
+    // Se a compra foi feita DEPOIS do fechamento, vai para a fatura de dois meses à frente
     if (purchaseDay <= closingDate) {
       return addMonths(purchase, 1);
     } else {

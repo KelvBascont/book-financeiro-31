@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -367,32 +366,42 @@ const Cards = () => {
         </Card>
       </div>
 
-      {/* Card Details Section */}
+      {/* Card Details Section - Seleção de Cartão e Despesas Detalhadas */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Selecionar cartão para ver despesas detalhadas</p>
+              <CardTitle className="flex items-center gap-2 mt-2">
+                <Calendar className="h-5 w-5" />
+                Cartão
+              </CardTitle>
+            </div>
+            <Select value={selectedCardForDetails} onValueChange={setSelectedCardForDetails}>
+              <SelectTrigger className="w-64 bg-gray-700 border-gray-600">
+                <SelectValue placeholder="Selecione um cartão" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                {cards.map(card => (
+                  <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Despesas Detalhadas - Somente quando um cartão for selecionado */}
       {selectedCardForDetails && (
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Selecionar cartão para ver despesas detalhadas</p>
-                <CardTitle className="flex items-center gap-2 mt-2">
-                  <Calendar className="h-5 w-5" />
-                  Despesas Detalhadas - {selectedCard?.name} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
-                </CardTitle>
-                <p className="text-sm text-gray-400 mt-1">
-                  {filteredExpenses.length} compra{filteredExpenses.length !== 1 ? 's' : ''} nesta fatura • Fechamento dia {selectedCard?.closing_date}
-                </p>
-              </div>
-              <Select value={selectedCardForDetails} onValueChange={setSelectedCardForDetails}>
-                <SelectTrigger className="w-64 bg-gray-700 border-gray-600">
-                  <SelectValue placeholder="Selecione um cartão" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  {cards.map(card => (
-                    <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Despesas Detalhadas - {selectedCard?.name} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
+            </CardTitle>
+            <p className="text-sm text-gray-400 mt-1">
+              {filteredExpenses.length} compra{filteredExpenses.length !== 1 ? 's' : ''} nesta fatura • Fechamento dia {selectedCard?.closing_date}
+            </p>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
