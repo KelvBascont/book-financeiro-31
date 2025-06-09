@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,8 +34,8 @@ export const useCardExpenses = () => {
 
     let billingMonth, billingYear;
 
-    // Se a compra foi feita até o dia de fechamento (inclusive)
-    if (purchaseDay <= closingDay) {
+    // Se a compra foi feita ANTES do dia de fechamento (não inclui o dia do fechamento)
+    if (purchaseDay < closingDay) {
       // A fatura é do mês SEGUINTE à compra
       billingMonth = purchaseMonth + 1;
       billingYear = purchaseYear;
@@ -45,7 +46,7 @@ export const useCardExpenses = () => {
         billingYear++;
       }
     } else {
-      // Se a compra foi feita após o dia de fechamento
+      // Se a compra foi feita NO DIA do fechamento ou APÓS o dia de fechamento
       // A fatura é do mês seguinte + 1 (dois meses à frente)
       billingMonth = purchaseMonth + 2;
       billingYear = purchaseYear;

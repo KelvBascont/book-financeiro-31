@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -39,8 +40,8 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
 
     let billingMonth, billingYear;
 
-    // Se a compra foi feita até o dia de fechamento (inclusive)
-    if (purchaseDay <= closingDay) {
+    // Se a compra foi feita ANTES do dia de fechamento (não inclui o dia do fechamento)
+    if (purchaseDay < closingDay) {
       // A fatura é do mês SEGUINTE à compra
       billingMonth = purchaseMonth + 1;
       billingYear = purchaseYear;
@@ -51,7 +52,7 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
         billingYear++;
       }
     } else {
-      // Se a compra foi feita após o dia de fechamento
+      // Se a compra foi feita NO DIA do fechamento ou APÓS o dia de fechamento
       // A fatura é do mês seguinte + 1 (dois meses à frente)
       billingMonth = purchaseMonth + 2;
       billingYear = purchaseYear;
