@@ -13,6 +13,12 @@ import ExpenseModal from './cards/ExpenseModal';
 import PayBillModal from './cards/PayBillModal';
 import CardsModal from './cards/CardsModal';
 import CardForm from './cards/CardForm';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const Cards = () => {
   const formatters = useFormatters();
@@ -25,7 +31,6 @@ const Cards = () => {
   const [showPayBillModal, setShowPayBillModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedCardForDetails, setSelectedCardForDetails] = useState('');
-  const [showCardsModal, setShowCardsModal] = useState(false);
 
   const currentMonthStr = format(selectedMonth, 'yyyy-MM');
   
@@ -137,14 +142,17 @@ const Cards = () => {
           <p className="text-gray-400">Controle de gastos e faturas de cartões</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => setShowCardsModal(true)}
-            variant="outline" 
-            className="border-gray-600 text-white hover:bg-gray-800"
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            Cartões Cadastrados
-          </Button>
+          <CardsModal
+            cards={cards}
+            onAddCard={() => {
+              setShowCardForm(true);
+            }}
+            onEditCard={(card) => {
+              setEditingCard(card);
+              setShowCardForm(true);
+            }}
+            onDeleteCard={deleteCard}
+          />
           <Button 
             onClick={() => setShowExpenseModal(true)}
             className="bg-orange-600 hover:bg-orange-700"
@@ -272,7 +280,7 @@ const Cards = () => {
                         <span className={`text-sm font-medium ${
                           bill.status === 'overdue' ? 'text-red-400' : 'text-orange-400'
                         }`}>
-                          {bill.status === 'overdue' ? 'Vencido' : 'Vencido'}
+                          {bill.status === 'overdue' ? 'Vencido' : 'Pendente'}
                         </span>
                         
                         <div className="flex gap-1">
@@ -477,22 +485,6 @@ const Cards = () => {
         onOpenChange={setShowPayBillModal}
         bill={selectedBill}
         onConfirmPayment={handleConfirmPayment}
-      />
-
-      <CardsModal
-        open={showCardsModal}
-        onOpenChange={setShowCardsModal}
-        cards={cards}
-        onAddCard={() => {
-          setShowCardsModal(false);
-          setShowCardForm(true);
-        }}
-        onEditCard={(card) => {
-          setShowCardsModal(false);
-          setEditingCard(card);
-          setShowCardForm(true);
-        }}
-        onDeleteCard={deleteCard}
       />
 
       <CardForm
