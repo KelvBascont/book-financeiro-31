@@ -1,10 +1,15 @@
 
 import { useFormatters } from './useFormatters';
-import { useFinancial } from '@/contexts/FinancialContext';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useCardExpenses } from '@/hooks/useCardExpenses';
+import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
+import { format, addMonths } from 'date-fns';
 
 export const usePrint = () => {
   const formatters = useFormatters();
-  const { getTotalCashExpenses, getTotalIncomes, getBalance } = useFinancial();
+  const { cashExpenses, incomes } = useSupabaseData();
+  const { cardExpenses } = useCardExpenses();
+  const { calculateTotalForMonth } = useRecurrenceFilter();
 
   const generatePrintableSpreadsheet = () => {
     const months = [];
@@ -13,11 +18,20 @@ export const usePrint = () => {
     // Gera dados para 12 meses
     for (let i = 0; i < 12; i++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      const totalIncomes = getTotalIncomes(date);
-      const totalCashExpenses = getTotalCashExpenses(date);
-      const mockCardExpenses = 2500 + (Math.random() * 1000);
-      const mockFixedExpenses = 1200;
-      const totalExpenses = totalCashExpenses + mockCardExpenses + mockFixedExpenses;
+      const monthString = format(date, 'MM/yyyy');
+      
+      const totalIncomes = calculateTotalForMonth(incomes, monthString);
+      const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
+      
+      // Calculate real card expenses for the month
+      const totalCardExpenses = cardExpenses
+        .filter(expense => {
+          const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
+          return expenseMonth === monthString;
+        })
+        .reduce((sum, expense) => sum + expense.amount, 0);
+      
+      const totalExpenses = totalCashExpenses + totalCardExpenses;
       const balance = totalIncomes - totalExpenses;
       const percentageLeft = totalIncomes > 0 ? (balance / totalIncomes) * 100 : 0;
 
@@ -25,8 +39,7 @@ export const usePrint = () => {
         month: formatters.dateShort(date),
         incomes: formatters.currency(totalIncomes),
         cashExpenses: formatters.currency(totalCashExpenses),
-        cardExpenses: formatters.currency(mockCardExpenses),
-        fixedExpenses: formatters.currency(mockFixedExpenses),
+        cardExpenses: formatters.currency(totalCardExpenses),
         totalExpenses: formatters.currency(totalExpenses),
         balance: formatters.currency(balance),
         percentageLeft: formatters.percentage(percentageLeft),
@@ -83,7 +96,6 @@ export const usePrint = () => {
             .header-incomes { background-color: #d1fae5; }
             .header-cash { background-color: #fef3c7; }
             .header-card { background-color: #fee2e2; }
-            .header-fixed { background-color: #e0e7ff; }
             .header-total { background-color: #fecaca; }
             .header-balance { background-color: #d1fae5; }
             .header-percentage { background-color: #e0e7ff; }
@@ -102,7 +114,6 @@ export const usePrint = () => {
                 <th class="header-incomes">Receitas</th>
                 <th class="header-cash">Desp. à Vista</th>
                 <th class="header-card">Desp. Cartão</th>
-                <th class="header-fixed">Desp. Fixas</th>
                 <th class="header-total">Total Desp.</th>
                 <th class="header-balance">Saldo</th>
                 <th class="header-percentage">% Sobra</th>
@@ -115,7 +126,6 @@ export const usePrint = () => {
                   <td class="positive">${row.incomes}</td>
                   <td>${row.cashExpenses}</td>
                   <td>${row.cardExpenses}</td>
-                  <td>${row.fixedExpenses}</td>
                   <td>${row.totalExpenses}</td>
                   <td class="${row.balancePositive ? 'positive' : 'negative'}">${row.balance}</td>
                   <td class="${row.balancePositive ? 'positive' : 'negative'}">${row.percentageLeft}</td>

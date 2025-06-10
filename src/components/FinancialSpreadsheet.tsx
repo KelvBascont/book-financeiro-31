@@ -10,7 +10,7 @@ import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { usePrint } from '@/hooks/usePrint';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { FileSpreadsheet, Printer } from 'lucide-react';
-import { format, eachMonthOfInterval, addMonths, parse, isWithinInterval } from 'date-fns';
+import { format, eachMonthOfInterval, addMonths, parse } from 'date-fns';
 
 const FinancialSpreadsheet = () => {
   const formatters = useFormatters();
@@ -46,7 +46,7 @@ const FinancialSpreadsheet = () => {
       const totalIncomes = calculateTotalForMonth(incomes, monthString);
       const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
       
-      // Calculate card expenses for specific month
+      // Calculate card expenses for specific month using real data
       const cardExpensesForMonth = cardExpenses
         .filter(expense => {
           const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
