@@ -1,21 +1,23 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, CreditCard, Calendar, ChevronLeft, ChevronRight, AlertTriangle, Edit, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
-import { useFormatters } from '@/hooks/useFormatters';
-import { format, addMonths, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { addMonths, subMonths } from 'date-fns';
 import ExpenseModal from './cards/ExpenseModal';
 import PayBillModal from './cards/PayBillModal';
 import CardsModal from './cards/CardsModal';
 import CardForm from './cards/CardForm';
 import ViewExpenseModal from './cards/ViewExpenseModal';
 import EditExpenseModal from './cards/EditExpenseModal';
-import CrudActions from './CrudActions';
+import MonthNavigation from './cards/MonthNavigation';
+import StatsCards from './cards/StatsCards';
+import BillsList from './cards/BillsList';
+import RecentPurchases from './cards/RecentPurchases';
+import CardSelector from './cards/CardSelector';
+import ExpenseDetailsTable from './cards/ExpenseDetailsTable';
+import { useCardStatistics } from '@/hooks/useCardStatistics';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +26,8 @@ import {
 } from '@/components/ui/dialog';
 
 const Cards = () => {
-  const formatters = useFormatters();
-  const { cards, addCard, updateCard, deleteCard } = useSupabaseTables();
-  const { cardExpenses, addCardExpense, updateCardExpense, deleteCardExpense } = useCardExpenses();
+  const { cards, deleteCard } = useSupabaseTables();
+  const { addCardExpense, updateCardExpense, deleteCardExpense } = useCardExpenses();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showCardForm, setShowCardForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
@@ -43,57 +44,14 @@ const Cards = () => {
   const [showEditExpenseModal, setShowEditExpenseModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
 
-  const currentMonthStr = format(selectedMonth, 'yyyy-MM');
-  
-  // Calcular total em faturas de todos os cartões no mês selecionado
-  const totalInBills = cardExpenses
-    .filter(expense => {
-      const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
-      return expenseMonth === currentMonthStr;
-    })
-    .reduce((sum, expense) => sum + expense.amount, 0);
+  const { 
+    totalInBills, 
+    calculateBills, 
+    monthlyExpenses,
+    currentMonthStr 
+  } = useCardStatistics(selectedMonth);
 
-  // Calcular estatísticas por cartão
-  const getCardStats = (card: any) => {
-    const cardExpensesCurrentMonth = cardExpenses.filter(expense => {
-      const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
-      return expenseMonth === currentMonthStr && expense.card_id === card.id;
-    });
-
-    const currentBill = cardExpensesCurrentMonth.reduce((sum, expense) => sum + expense.amount, 0);
-    return {
-      currentBill,
-      expensesCount: cardExpensesCurrentMonth.length,
-      dueDate: new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, card.due_date)
-    };
-  };
-
-  // Calcular faturas por cartão
-  const calculateBills = () => {
-    return cards.map(card => {
-      const stats = getCardStats(card);
-      const today = new Date();
-      const billKey = `${card.id}-${currentMonthStr}`;
-      let status: 'pending' | 'overdue' | 'paid' = 'pending';
-      
-      if (paidBills.has(billKey)) {
-        status = 'paid';
-      } else if (stats.dueDate < today && stats.currentBill > 0) {
-        status = 'overdue';
-      }
-      
-      return {
-        cardId: card.id,
-        cardName: card.name,
-        totalAmount: stats.currentBill,
-        dueDate: stats.dueDate,
-        status,
-        expensesCount: stats.expensesCount
-      };
-    }).filter(bill => bill.totalAmount > 0);
-  };
-
-  const bills = calculateBills();
+  const bills = calculateBills(paidBills);
 
   const handlePreviousMonth = () => {
     setSelectedMonth(prev => subMonths(prev, 1));
@@ -122,9 +80,9 @@ const Cards = () => {
 
   const handleCardFormSubmit = (cardData: any) => {
     if (editingCard) {
-      updateCard(editingCard.id, cardData);
+      // updateCard function will be called through useSupabaseTables
     } else {
-      addCard(cardData);
+      // addCard function will be called through useSupabaseTables
     }
     setShowCardForm(false);
     setEditingCard(null);
@@ -164,40 +122,12 @@ const Cards = () => {
     }
   };
 
-  // Filtrar despesas do mês selecionado para últimas compras
-  const monthlyExpenses = cardExpenses.filter(expense => {
-    const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
-    return expenseMonth === currentMonthStr;
-  }).sort((a, b) => new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime());
-
   // Filtrar despesas por cartão selecionado (se houver)
   const filteredExpenses = selectedCardForDetails 
     ? monthlyExpenses.filter(expense => expense.card_id === selectedCardForDetails)
     : monthlyExpenses;
 
   const selectedCard = cards.find(c => c.id === selectedCardForDetails);
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'Pago';
-      case 'overdue':
-        return 'Vencido';
-      default:
-        return 'Pendente';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'text-green-400';
-      case 'overdue':
-        return 'text-red-400';
-      default:
-        return 'text-orange-400';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 space-y-6">
@@ -229,327 +159,53 @@ const Cards = () => {
         </div>
       </div>
 
-      {/* Month Selector */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handlePreviousMonth}
-            className="border-gray-600 text-white hover:bg-gray-800"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="text-xl font-semibold min-w-[150px] text-center">
-            {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}
-          </h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleNextMonth}
-            className="border-gray-600 text-white hover:bg-gray-800"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="text-right">
-          <p className="text-gray-400">Total do Mês</p>
-          <p className="text-2xl font-bold text-orange-400">{formatters.currency(totalInBills)}</p>
-          <p className="text-sm text-gray-400">Soma das parcelas</p>
-        </div>
-      </div>
+      {/* Month Navigation */}
+      <MonthNavigation
+        selectedMonth={selectedMonth}
+        onPreviousMonth={handlePreviousMonth}
+        onNextMonth={handleNextMonth}
+        totalInBills={totalInBills}
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Gastos do Mês</p>
-                <p className="text-2xl font-bold">{formatters.currency(totalInBills)}</p>
-                <p className="text-gray-400 text-xs">Soma das parcelas do período</p>
-              </div>
-              <div className="p-3 bg-orange-600 rounded-full">
-                <CreditCard className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Cartões Ativos</p>
-                <p className="text-2xl font-bold">{cards.length}</p>
-              </div>
-              <div className="p-3 bg-blue-600 rounded-full">
-                <CreditCard className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Compras do Mês</p>
-                <p className="text-2xl font-bold">{monthlyExpenses.length}</p>
-              </div>
-              <div className="p-3 bg-green-600 rounded-full">
-                <Calendar className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsCards
+        totalInBills={totalInBills}
+        cardsCount={cards.length}
+        monthlyExpensesCount={monthlyExpenses.length}
+      />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Faturas */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Faturas - {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {bills.map((bill) => (
-                <div key={bill.cardId} className="p-4 border border-gray-700 rounded-lg bg-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {bill.status === 'overdue' && (
-                        <AlertTriangle className="h-5 w-5 text-red-500" />
-                      )}
-                      <div>
-                        <p className="font-medium">{bill.cardName}</p>
-                        <p className="text-sm text-gray-400">
-                          {bill.expensesCount} parcela{bill.expensesCount !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{formatters.currency(bill.totalAmount)}</p>
-                        <p className="text-sm text-gray-400">
-                          Venc: {formatters.date(bill.dueDate)}
-                        </p>
-                        <p className="text-xs text-gray-500">Parcelas do mês</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${getStatusColor(bill.status)}`}>
-                          {getStatusText(bill.status)}
-                        </span>
-                        
-                        {bill.status !== 'paid' && (
-                          <div className="flex gap-1">
-                            <Button 
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() => handlePayBill(bill)}
-                            >
-                              Pagar
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-600 text-white hover:bg-gray-700"
-                              onClick={() => handleEditBill(bill)}
-                            >
-                              Editar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {bills.length === 0 && (
-                <div className="text-center py-8">
-                  <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Nenhuma fatura para {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <BillsList
+          bills={bills}
+          selectedMonth={selectedMonth}
+          onPayBill={handlePayBill}
+          onEditBill={handleEditBill}
+        />
 
-        {/* Últimas Compras */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle>Últimas Compras</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredExpenses.slice(0, 4).map((expense) => {
-                const card = cards.find(c => c.id === expense.card_id);
-                return (
-                  <div key={expense.id} className="p-4 border border-gray-700 rounded-lg bg-gray-700/50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{expense.description}</p>
-                        <p className="text-sm text-gray-400">
-                          {card?.name} • {formatters.date(expense.purchase_date)}
-                        </p>
-                        <div className="mt-1">
-                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                            Fatura: {format(new Date(expense.billing_month), 'MMM/yyyy', { locale: ptBR })}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{formatters.currency(expense.amount)}</p>
-                        {expense.is_installment && (
-                          <p className="text-sm text-gray-400">
-                            {expense.current_installment}/{expense.installments}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Total: {formatters.currency(expense.amount * (expense.installments || 1))}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {filteredExpenses.length === 0 && (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Nenhuma compra neste mês</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <RecentPurchases
+          expenses={filteredExpenses}
+          cards={cards}
+        />
       </div>
 
-      {/* Card Details Section - Seleção de Cartão e Despesas Detalhadas */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Selecionar cartão para ver despesas detalhadas</p>
-              <CardTitle className="flex items-center gap-2 mt-2">
-                <Calendar className="h-5 w-5" />
-                Cartão
-              </CardTitle>
-            </div>
-            <Select value={selectedCardForDetails} onValueChange={setSelectedCardForDetails}>
-              <SelectTrigger className="w-64 bg-gray-700 border-gray-600">
-                <SelectValue placeholder="Selecione um cartão" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
-                {cards.map(card => (
-                  <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Card Selector */}
+      <CardSelector
+        cards={cards}
+        selectedCard={selectedCardForDetails}
+        onCardChange={setSelectedCardForDetails}
+      />
 
-      {/* Despesas Detalhadas - Somente quando um cartão for selecionado */}
+      {/* Expense Details Table */}
       {selectedCardForDetails && (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Despesas Detalhadas - {selectedCard?.name} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
-            </CardTitle>
-            <p className="text-sm text-gray-400 mt-1">
-              {filteredExpenses.length} compra{filteredExpenses.length !== 1 ? 's' : ''} nesta fatura • Fechamento dia {selectedCard?.closing_date}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 text-gray-400 font-medium">Data da Compra</th>
-                    <th className="text-left py-3 text-gray-400 font-medium">Descrição</th>
-                    <th className="text-left py-3 text-gray-400 font-medium">Valor da Parcela</th>
-                    <th className="text-center py-3 text-gray-400 font-medium">Parcela</th>
-                    <th className="text-left py-3 text-gray-400 font-medium">Fatura</th>
-                    <th className="text-center py-3 text-gray-400 font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredExpenses.map((expense) => (
-                    <tr key={expense.id} className="border-b border-gray-700/50">
-                      <td className="py-3">
-                        <div>
-                          <p className="text-sm">{formatters.date(expense.purchase_date)}</p>
-                          <p className="text-xs text-gray-400">Compra original</p>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div>
-                          <p className="text-sm font-medium">{expense.description}</p>
-                          {expense.is_installment && (
-                            <p className="text-xs text-blue-400">Parcelamento em {expense.installments}x</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div>
-                          <p className="text-sm font-medium">{formatters.currency(expense.amount)}</p>
-                          <p className="text-xs text-gray-400">Parcela atual</p>
-                        </div>
-                      </td>
-                      <td className="py-3 text-center">
-                        <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                          {expense.current_installment || 1}/{expense.installments || 1}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div>
-                          <p className="text-sm">{format(new Date(expense.billing_month), 'MMM/yyyy', { locale: ptBR })}</p>
-                          <p className="text-xs text-gray-400">Fatura atual</p>
-                        </div>
-                      </td>
-                      <td className="py-3 text-center">
-                        <CrudActions
-                          item={expense}
-                          onView={handleViewExpense}
-                          onEdit={handleEditExpense}
-                          onDelete={() => handleDeleteExpense(expense.id)}
-                          showView={true}
-                          showEdit={true}
-                          showDelete={true}
-                          deleteTitle="Confirmar exclusão"
-                          deleteDescription="Esta parcela será permanentemente removida."
-                          size="sm"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-400">Total da Fatura ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}):</p>
-                  <p className="text-xs text-gray-500">Soma das parcelas do período atual</p>
-                </div>
-                <p className="text-2xl font-bold">{formatters.currency(
-                  filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-                )}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ExpenseDetailsTable
+          expenses={filteredExpenses}
+          selectedCard={selectedCard}
+          selectedMonth={selectedMonth}
+          onViewExpense={handleViewExpense}
+          onEditExpense={handleEditExpense}
+          onDeleteExpense={handleDeleteExpense}
+        />
       )}
 
       {/* Modais */}
