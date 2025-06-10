@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -35,7 +34,7 @@ const Cards = () => {
   const [showPayBillModal, setShowPayBillModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedCardForDetails, setSelectedCardForDetails] = useState('');
-  const [paidBills, setPaidBills] = useState(new Set());
+  const [paidBills, setPaidBills] = useState<Set<string>>(new Set<string>());
   const [editingBill, setEditingBill] = useState(null);
   const [showEditBillModal, setShowEditBillModal] = useState(false);
   
