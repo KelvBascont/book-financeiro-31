@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +63,7 @@ const Cards = () => {
     return {
       currentBill,
       expensesCount: cardExpensesCurrentMonth.length,
-      dueDate: new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), card.due_date)
+      dueDate: new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, card.due_date)
     };
   };
 
