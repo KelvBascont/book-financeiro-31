@@ -10,6 +10,7 @@ interface CashExpensesTableProps {
   selectedMonth: string;
   onUpdateOccurrence: (transactionId: string, occurrenceIndex: number, newAmount: number) => Promise<void>;
   onDeleteExpense: (id: string) => Promise<void>;
+  onEditExpense: (expense: any) => void;
 }
 
 const CashExpensesTable = ({ 
@@ -17,7 +18,8 @@ const CashExpensesTable = ({
   monthlyTotal, 
   selectedMonth, 
   onUpdateOccurrence, 
-  onDeleteExpense 
+  onDeleteExpense,
+  onEditExpense 
 }: CashExpensesTableProps) => {
   const formatters = useFormatters();
 
@@ -73,6 +75,7 @@ const CashExpensesTable = ({
                     transaction={expense}
                     onUpdateOccurrence={onUpdateOccurrence}
                     onDeleteTransaction={onDeleteExpense}
+                    onEditTransaction={onEditExpense}
                   />
                 ))}
               </tbody>
