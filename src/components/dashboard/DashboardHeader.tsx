@@ -2,7 +2,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown, Calendar } from 'lucide-react';
-import DateRangeFilter from '@/components/DateRangeFilter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +19,7 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = ({
-  dateFilter,
   selectedMonth,
-  onFilterChange,
-  onClearFilter,
   onMonthChange
 }: DashboardHeaderProps) => {
   const generateMonths = () => {
@@ -50,25 +46,19 @@ const DashboardHeader = ({
         </div>
         
         <div className="flex items-center gap-4">
-          <DateRangeFilter
-            onFilterChange={onFilterChange}
-            onClearFilter={onClearFilter}
-            isActive={!!dateFilter}
-          />
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                className="min-w-[140px] justify-between bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="min-w-[140px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md"
               >
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm font-medium">
                     {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
                   </span>
                 </div>
-                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
