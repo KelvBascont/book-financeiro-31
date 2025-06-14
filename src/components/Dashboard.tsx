@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -12,12 +11,14 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { TrendingUp, PiggyBank, CreditCard, Car, FileSpreadsheet } from 'lucide-react';
 import ExpensesDueSoonCard from '@/components/ExpensesDueSoonCard';
 import DateRangeFilter from '@/components/DateRangeFilter';
+import MonthChipsFilter from '@/components/MonthChipsFilter';
 import { format, isWithinInterval, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Dashboard = () => {
   const formatters = useFormatters();
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   
   const { 
     monthlyData, 
@@ -96,6 +97,12 @@ const Dashboard = () => {
     setDateFilter(null);
   };
 
+  const handleMonthChange = (month: Date) => {
+    setSelectedMonth(month);
+    // Clear date range filter when using month chips
+    setDateFilter(null);
+  };
+
   if (loading) {
     return (
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -113,16 +120,26 @@ const Dashboard = () => {
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
+            </div>
+            <DateRangeFilter
+              onFilterChange={handleFilterChange}
+              onClearFilter={handleClearFilter}
+              isActive={!!dateFilter}
+            />
           </div>
-          <DateRangeFilter
-            onFilterChange={handleFilterChange}
-            onClearFilter={handleClearFilter}
-            isActive={!!dateFilter}
-          />
+          
+          {/* Month Chips Filter */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <MonthChipsFilter
+              selectedMonth={selectedMonth}
+              onMonthChange={handleMonthChange}
+            />
+          </div>
         </div>
       </div>
 
@@ -192,7 +209,7 @@ const Dashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
             <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
-            Resumo Financeiro - {dateFilter ? `${dateFilter.start} a ${dateFilter.end}` : format(new Date(), 'MMM/yyyy', { locale: ptBR })}
+            Resumo Financeiro - {dateFilter ? `${dateFilter.start} a ${dateFilter.end}` : format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
           </CardTitle>
         </CardHeader>
         <CardContent>
