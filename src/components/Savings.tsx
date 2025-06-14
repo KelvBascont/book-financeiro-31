@@ -1,21 +1,29 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Target, TrendingUp, PiggyBank } from 'lucide-react';
+import { Plus, Target, TrendingUp, PiggyBank, Calendar, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseTables } from '@/hooks/useSupabaseTables';
 import { useFormatters } from '@/hooks/useFormatters';
 import CrudActions from '@/components/CrudActions';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Savings = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   
   const {
     savingsGoals,
@@ -38,6 +46,21 @@ const Savings = () => {
     date: '',
     description: ''
   });
+
+  const generateMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Gera 12 meses: 6 anteriores, atual e 5 posteriores
+    for (let i = -6; i <= 5; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
+    }
+    
+    return months;
+  };
+
+  const months = generateMonths();
 
   const handleAddGoal = async () => {
     if (!goalForm.name || !goalForm.initial_amount) {
@@ -103,6 +126,13 @@ const Savings = () => {
     return 'bg-red-500';
   };
 
+  // Filter transactions by selected month
+  const filteredTransactions = savingsTransactions.filter(transaction => {
+    const transactionDate = new Date(transaction.date);
+    return transactionDate.getMonth() === selectedMonth.getMonth() && 
+           transactionDate.getFullYear() === selectedMonth.getFullYear();
+  });
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -123,15 +153,63 @@ const Savings = () => {
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Reservas e Metas</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Crie e acompanhe suas "caixinhas" de economia</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddGoal(!showAddGoal)} variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Meta
-          </Button>
-          <Button onClick={() => setShowAddTransaction(!showAddTransaction)} className="bg-green-500 hover:bg-green-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Valor
-          </Button>
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="min-w-[110px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md px-3 py-1.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
+                    {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
+                  </span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+            >
+              {months.map((month) => {
+                const isSelected = format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
+                const isCurrent = format(month, 'yyyy-MM') === format(new Date(), 'yyyy-MM');
+                
+                return (
+                  <DropdownMenuItem
+                    key={format(month, 'yyyy-MM')}
+                    onClick={() => setSelectedMonth(month)}
+                    className={`
+                      cursor-pointer flex items-center justify-between px-3 py-2
+                      ${isSelected 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }
+                    `}
+                  >
+                    <span>{format(month, 'MMM/yyyy', { locale: ptBR })}</span>
+                    {isCurrent && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowAddGoal(!showAddGoal)} variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Meta
+            </Button>
+            <Button onClick={() => setShowAddTransaction(!showAddTransaction)} className="bg-green-500 hover:bg-green-600">
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Valor
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -321,14 +399,14 @@ const Savings = () => {
         )}
       </div>
 
-      {savingsTransactions.length > 0 && (
+      {filteredTransactions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Últimas Movimentações</CardTitle>
+            <CardTitle>Movimentações - {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {savingsTransactions.slice(0, 10).map((transaction) => {
+              {filteredTransactions.slice(0, 10).map((transaction) => {
                 const goal = savingsGoals.find(g => g.id === transaction.goal_id);
                 return (
                   <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">

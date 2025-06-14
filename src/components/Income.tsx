@@ -5,22 +5,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, DollarSign, TrendingUp } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, Calendar, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
-import MonthSelector from '@/components/income/MonthSelector';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import EditableIncomeRow from '@/components/EditableIncomeRow';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Income = () => {
   const { toast } = useToast();
   const formatters = useFormatters();
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [editingIncome, setEditingIncome] = useState<any>(null);
-  const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   
   const {
     incomes,
@@ -42,6 +48,21 @@ const Income = () => {
   });
 
   const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
+
+  const generateMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Gera 12 meses: 6 anteriores, atual e 5 posteriores
+    for (let i = -6; i <= 5; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
+    }
+    
+    return months;
+  };
+
+  const months = generateMonths();
 
   // Helper function to format month display
   const formatMonthDisplay = (monthString: string) => {
@@ -149,20 +170,6 @@ const Income = () => {
     await deleteIncome(id);
   };
 
-  const getFilteredIncomes = () => {
-    const [month, year] = selectedMonth.split('/');
-    return incomes.filter(income => {
-      const incomeDate = new Date(income.date);
-      const incomeMonth = (incomeDate.getMonth() + 1).toString().padStart(2, '0');
-      const incomeYear = incomeDate.getFullYear().toString();
-      return incomeMonth === month && incomeYear === year;
-    });
-  };
-
-  const getTotalIncome = () => {
-    return getFilteredIncomes().reduce((total, income) => total + income.amount, 0);
-  };
-
   const typeLabels = {
     salary: 'Salário',
     bonus: 'Bônus',
@@ -196,9 +203,11 @@ const Income = () => {
     );
   }
 
-  const filteredIncomes = filterByReferenceMonth(incomes, selectedMonth);
+  // Convert selectedMonth to the format used by the filter functions
+  const selectedMonthString = `${(selectedMonth.getMonth() + 1).toString().padStart(2, '0')}/${selectedMonth.getFullYear()}`;
+  const filteredIncomes = filterByReferenceMonth(incomes, selectedMonthString);
   const filteredIncomesWithOverrides = applyOverridesToTransactions(filteredIncomes);
-  const monthlyTotal = calculateTotalForMonth(incomes, selectedMonth);
+  const monthlyTotal = calculateTotalForMonth(incomes, selectedMonthString);
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -207,24 +216,59 @@ const Income = () => {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas fontes de renda</p>
         </div>
-        <Button onClick={() => setShowAddIncome(!showAddIncome)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Receita
-        </Button>
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="min-w-[110px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md px-3 py-1.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
+                    {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
+                  </span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+            >
+              {months.map((month) => {
+                const isSelected = format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
+                const isCurrent = format(month, 'yyyy-MM') === format(new Date(), 'yyyy-MM');
+                
+                return (
+                  <DropdownMenuItem
+                    key={format(month, 'yyyy-MM')}
+                    onClick={() => setSelectedMonth(month)}
+                    className={`
+                      cursor-pointer flex items-center justify-between px-3 py-2
+                      ${isSelected 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }
+                    `}
+                  >
+                    <span>{format(month, 'MMM/yyyy', { locale: ptBR })}</span>
+                    {isCurrent && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setShowAddIncome(!showAddIncome)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Receita
+          </Button>
+        </div>
       </div>
-
-      {/* Month Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtrar por Mês</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonthSelector 
-            selectedMonth={selectedMonth} 
-            onMonthChange={setSelectedMonth} 
-          />
-        </CardContent>
-      </Card>
 
       {/* Resumo das receitas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -368,7 +412,7 @@ const Income = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Receitas - {formatMonthDisplay(selectedMonth)}
+              Receitas - {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
             </CardTitle>
             <div className="text-right">
               <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
@@ -381,7 +425,7 @@ const Income = () => {
         <CardContent>
           {filteredIncomesWithOverrides.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
+              Nenhuma receita encontrada para {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
             </div>
           ) : (
             <div className="overflow-x-auto">
