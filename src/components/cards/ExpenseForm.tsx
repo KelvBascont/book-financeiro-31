@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useCategories } from '@/hooks/useCategories';
+import CategorySelector from '@/components/CategorySelector';
 
 interface ExpenseFormProps {
   showForm: boolean;
@@ -20,6 +22,7 @@ interface ExpenseFormProps {
 const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) => {
   const { toast } = useToast();
   const formatters = useFormatters();
+  const { expenseCategories, loading: categoriesLoading } = useCategories();
   const [expenseForm, setExpenseForm] = useState({
     card_id: '',
     purchase_date: '',
@@ -27,7 +30,8 @@ const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) 
     amount: '',
     is_installment: false,
     installments: '',
-    billing_month: ''
+    billing_month: '',
+    category_id: ''
   });
 
   const calculateBillingMonth = (purchaseDate: string, closingDate: number) => {
@@ -76,7 +80,8 @@ const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) 
       billing_month: billingMonth,
       is_installment: expenseForm.is_installment,
       installments: expenseForm.is_installment ? parseInt(expenseForm.installments) : undefined,
-      current_installment: expenseForm.is_installment ? 1 : undefined
+      current_installment: expenseForm.is_installment ? 1 : undefined,
+      category_id: expenseForm.category_id || undefined
     });
 
     setExpenseForm({ 
@@ -86,7 +91,8 @@ const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) 
       amount: '', 
       is_installment: false, 
       installments: '',
-      billing_month: ''
+      billing_month: '',
+      category_id: ''
     });
   };
 
@@ -101,7 +107,7 @@ const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <Label htmlFor="expenseCard">Cartão *</Label>
             <Select 
@@ -131,6 +137,16 @@ const ExpenseForm = ({ showForm, cards, onSubmit, onCancel }: ExpenseFormProps) 
                 Cadastre um cartão antes de adicionar despesas
               </p>
             )}
+          </div>
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <CategorySelector
+              categories={expenseCategories}
+              value={expenseForm.category_id}
+              onValueChange={(value) => setExpenseForm({ ...expenseForm, category_id: value })}
+              placeholder="Selecione uma categoria"
+              disabled={categoriesLoading}
+            />
           </div>
           <div>
             <Label htmlFor="purchaseDate">Data da Compra *</Label>

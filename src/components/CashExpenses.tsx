@@ -35,7 +35,8 @@ const CashExpenses = () => {
     date: '',
     due_date: '',
     is_recurring: false,
-    recurrence_months: ''
+    recurrence_months: '',
+    category_id: ''
   });
 
   const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
@@ -56,7 +57,8 @@ const CashExpenses = () => {
       date: expenseForm.date,
       due_date: expenseForm.due_date,
       is_recurring: expenseForm.is_recurring,
-      recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined
+      recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined,
+      category_id: expenseForm.category_id || undefined
     });
 
     if (result) {
@@ -72,7 +74,8 @@ const CashExpenses = () => {
       date: expense.date,
       due_date: expense.due_date,
       is_recurring: expense.is_recurring,
-      recurrence_months: expense.recurrence_months?.toString() || ''
+      recurrence_months: expense.recurrence_months?.toString() || '',
+      category_id: expense.category_id || ''
     });
     setShowAddExpense(true);
   };
@@ -93,7 +96,8 @@ const CashExpenses = () => {
       date: expenseForm.date,
       due_date: expenseForm.due_date,
       is_recurring: expenseForm.is_recurring,
-      recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined
+      recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined,
+      category_id: expenseForm.category_id || undefined
     });
 
     if (result) {
@@ -108,7 +112,8 @@ const CashExpenses = () => {
       date: '', 
       due_date: '', 
       is_recurring: false, 
-      recurrence_months: '' 
+      recurrence_months: '',
+      category_id: ''
     });
     setShowAddExpense(false);
     setEditingExpense(null);

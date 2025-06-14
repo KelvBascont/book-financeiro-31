@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Wallet } from 'lucide-react';
+import { useCategories } from '@/hooks/useCategories';
+import CategorySelector from '@/components/CategorySelector';
 
 interface ExpenseFormData {
   description: string;
@@ -13,6 +15,7 @@ interface ExpenseFormData {
   due_date: string;
   is_recurring: boolean;
   recurrence_months: string;
+  category_id: string;
 }
 
 interface CashExpenseFormProps {
@@ -32,6 +35,8 @@ const CashExpenseForm = ({
   onSubmit, 
   onCancel 
 }: CashExpenseFormProps) => {
+  const { expenseCategories, loading: categoriesLoading } = useCategories();
+
   if (!isVisible) return null;
 
   const handleFieldChange = (field: keyof ExpenseFormData, value: string | boolean) => {
@@ -50,7 +55,7 @@ const CashExpenseForm = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <Label htmlFor="description">Descrição *</Label>
             <Input
@@ -58,6 +63,16 @@ const CashExpenseForm = ({
               placeholder="Ex: Aluguel, Luz, Água..."
               value={formData.description}
               onChange={(e) => handleFieldChange('description', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <CategorySelector
+              categories={expenseCategories}
+              value={formData.category_id}
+              onValueChange={(value) => handleFieldChange('category_id', value)}
+              placeholder="Selecione uma categoria"
+              disabled={categoriesLoading}
             />
           </div>
           <div>

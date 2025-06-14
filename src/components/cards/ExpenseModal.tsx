@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useCategories } from '@/hooks/useCategories';
+import CategorySelector from '@/components/CategorySelector';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -22,6 +23,7 @@ interface ExpenseModalProps {
 const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps) => {
   const { toast } = useToast();
   const formatters = useFormatters();
+  const { expenseCategories, loading: categoriesLoading } = useCategories();
   const [expenseForm, setExpenseForm] = useState({
     card_id: '',
     purchase_date: '',
@@ -29,6 +31,7 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
     amount: '',
     is_installment: false,
     installments: '',
+    category_id: ''
   });
 
   // Função CORRETA para calcular o mês da fatura
@@ -100,7 +103,8 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
       billing_month: format(billingMonth, 'yyyy-MM-dd'),
       is_installment: expenseForm.is_installment,
       installments: expenseForm.is_installment ? parseInt(expenseForm.installments) : undefined,
-      current_installment: expenseForm.is_installment ? 1 : undefined
+      current_installment: expenseForm.is_installment ? 1 : undefined,
+      category_id: expenseForm.category_id || undefined
     });
 
     // Reset form
@@ -110,7 +114,8 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
       description: '', 
       amount: '', 
       is_installment: false, 
-      installments: ''
+      installments: '',
+      category_id: ''
     });
     
     onOpenChange(false);
@@ -155,6 +160,17 @@ const ExpenseModal = ({ open, onOpenChange, cards, onSubmit }: ExpenseModalProps
                 Cadastre um cartão antes de adicionar despesas
               </p>
             )}
+          </div>
+
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <CategorySelector
+              categories={expenseCategories}
+              value={expenseForm.category_id}
+              onValueChange={(value) => setExpenseForm({ ...expenseForm, category_id: value })}
+              placeholder="Selecione uma categoria"
+              disabled={categoriesLoading}
+            />
           </div>
 
           <div>
