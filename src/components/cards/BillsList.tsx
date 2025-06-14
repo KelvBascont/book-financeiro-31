@@ -52,7 +52,7 @@ const BillsList = ({ bills, selectedMonth, onPayBill, onEditBill }: BillsListPro
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          Faturas - {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}
+          Despesas - {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -114,7 +114,7 @@ const BillsList = ({ bills, selectedMonth, onPayBill, onEditBill }: BillsListPro
           {bills.length === 0 && (
             <div className="text-center py-8">
               <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400">Nenhuma fatura para {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}</p>
+              <p className="text-gray-400">Nenhuma despesa para {format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}</p>
             </div>
           )}
         </div>

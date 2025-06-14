@@ -9,7 +9,7 @@ export const useCardStatistics = (selectedMonth: Date) => {
   
   const currentMonthStr = format(selectedMonth, 'yyyy-MM');
   
-  // Calcular total em faturas de todos os cartões no mês selecionado
+  // Calcular total em despesas de todos os cartões no mês selecionado
   const totalInBills = cardExpenses
     .filter(expense => {
       const expenseMonth = format(new Date(expense.billing_month), 'yyyy-MM');
@@ -32,7 +32,7 @@ export const useCardStatistics = (selectedMonth: Date) => {
     };
   };
 
-  // Calcular faturas por cartão
+  // Calcular despesas por cartão
   const calculateBills = (paidBills: Set<string>) => {
     return cards.map(card => {
       const stats = getCardStats(card);

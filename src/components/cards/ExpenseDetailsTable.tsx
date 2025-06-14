@@ -37,7 +37,7 @@ const ExpenseDetailsTable = ({
           Despesas Detalhadas - {selectedCard?.name || 'Todos os Cartões'} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
         </CardTitle>
         <p className="text-sm text-gray-400 mt-1">
-          {expenses.length} compra{expenses.length !== 1 ? 's' : ''} nesta fatura
+          {expenses.length} compra{expenses.length !== 1 ? 's' : ''} nestas despesas
           {selectedCard?.closing_date && selectedCard.closing_date !== 'Variável' && (
             <> • Fechamento dia {selectedCard.closing_date}</>
           )}
@@ -52,7 +52,7 @@ const ExpenseDetailsTable = ({
                 <th className="text-left py-3 text-gray-400 font-medium">Descrição</th>
                 <th className="text-left py-3 text-gray-400 font-medium">Valor da Parcela</th>
                 <th className="text-center py-3 text-gray-400 font-medium">Parcela</th>
-                <th className="text-left py-3 text-gray-400 font-medium">Fatura</th>
+                <th className="text-left py-3 text-gray-400 font-medium">Despesas</th>
                 <th className="text-center py-3 text-gray-400 font-medium">Ações</th>
               </tr>
             </thead>
@@ -87,7 +87,7 @@ const ExpenseDetailsTable = ({
                   <td className="py-3">
                     <div>
                       <p className="text-sm">{format(new Date(expense.billing_month), 'MMM/yyyy', { locale: ptBR })}</p>
-                      <p className="text-xs text-gray-400">Fatura atual</p>
+                      <p className="text-xs text-gray-400">Despesas atuais</p>
                     </div>
                   </td>
                   <td className="py-3 text-center">
@@ -113,7 +113,7 @@ const ExpenseDetailsTable = ({
         <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-400">Total da Fatura ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}):</p>
+              <p className="text-sm text-gray-400">Total das Despesas ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })}):</p>
               <p className="text-xs text-gray-500">Soma das parcelas do período atual</p>
             </div>
             <p className="text-2xl font-bold">{formatters.currency(
