@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 
 interface CardSelectorProps {
@@ -21,18 +21,37 @@ const CardSelector = ({ cards, selectedCard, onCardChange }: CardSelectorProps) 
               Cartão
             </CardTitle>
           </div>
-          <Select value={selectedCard} onValueChange={onCardChange}>
-            <SelectTrigger className="w-64 bg-gray-700 border-gray-600">
-              <SelectValue placeholder="Selecione um cartão" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
-              {cards.map(card => (
-                <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          <Badge
+            variant={selectedCard === '' ? 'default' : 'outline'}
+            className={`cursor-pointer transition-colors ${
+              selectedCard === '' 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600'
+            }`}
+            onClick={() => onCardChange('')}
+          >
+            Todos ({cards.length})
+          </Badge>
+          {cards.map(card => (
+            <Badge
+              key={card.id}
+              variant={selectedCard === card.id ? 'default' : 'outline'}
+              className={`cursor-pointer transition-colors ${
+                selectedCard === card.id 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600'
+              }`}
+              onClick={() => onCardChange(card.id)}
+            >
+              {card.name}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
     </Card>
   );
 };
