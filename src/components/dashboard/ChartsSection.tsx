@@ -57,11 +57,14 @@ const ChartsSection = ({ monthlyData }: ChartsSectionProps) => {
                   fontWeight={500}
                 />
                 <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    formatters.currency(value), 
-                    name === 'income' ? 'Receitas' : 
-                    name === 'expenses' ? 'Despesas em Dinheiro' : 'Despesas de Cartão'
-                  ]}
+                  formatter={(value: number, name: string) => {
+                    const labels = {
+                      income: 'Receitas',
+                      expenses: 'Despesas em Dinheiro',
+                      cardExpenses: 'Despesas de Cartão'
+                    };
+                    return [formatters.currency(value), labels[name as keyof typeof labels] || name];
+                  }}
                   labelFormatter={(label) => `Período: ${label}`}
                   contentStyle={{
                     backgroundColor: 'var(--background)',
