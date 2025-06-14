@@ -166,22 +166,22 @@ const EditableOccurrenceRow = ({
             </>
           ) : (
             <>
-              {canEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="h-8 w-8 p-0"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              )}
-              {onEditTransaction && !transaction.isRecurringOccurrence && (
+              {/* Botão de edição único - prioriza edição completa se disponível, senão edição inline */}
+              {onEditTransaction && !transaction.isRecurringOccurrence ? (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleEdit}
                   className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              ) : canEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8 w-8 p-0"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
