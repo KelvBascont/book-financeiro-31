@@ -4,16 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Wallet, TrendingDown, Receipt, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Wallet, TrendingDown, Receipt, Edit2, Trash2, Calendar, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import CrudActions from '@/components/CrudActions';
-import MonthSelector from '@/components/income/MonthSelector';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import RecurringIndicator from '@/components/RecurringIndicator';
 import EditableOccurrenceRow from '@/components/EditableOccurrenceRow';
 import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const CashExpenses = () => {
   const { toast } = useToast();
@@ -47,11 +54,39 @@ const CashExpenses = () => {
 
   const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
 
+  const generateMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Gera 12 meses: 6 anteriores, atual e 5 posteriores
+    for (let i = -6; i <= 5; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
+    }
+    
+    return months;
+  };
+
+  const months = generateMonths();
+
   // Helper function to format month display
   const formatMonthDisplay = (monthString: string) => {
     const [month, year] = monthString.split('/');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
     return formatters.dateMonthYear(date);
+  };
+
+  // Convert MM/yyyy to Date for dropdown
+  const getDateFromMonthString = (monthString: string) => {
+    const [month, year] = monthString.split('/');
+    return new Date(parseInt(year), parseInt(month) - 1, 1);
+  };
+
+  // Convert Date to MM/yyyy string
+  const getMonthStringFromDate = (date: Date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
+    return `${month}/${year}`;
   };
   
   const handleAddExpense = async () => {
@@ -194,24 +229,60 @@ const CashExpenses = () => {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Despesas Correntes</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas despesas mensais</p>
         </div>
-        <Button onClick={() => setShowAddExpense(!showAddExpense)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Despesa
-        </Button>
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="min-w-[110px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md px-3 py-1.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
+                    {format(getDateFromMonthString(selectedMonth), 'MMM/yyyy', { locale: ptBR })}
+                  </span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+            >
+              {months.map((month) => {
+                const monthString = getMonthStringFromDate(month);
+                const isSelected = monthString === selectedMonth;
+                const isCurrent = getMonthStringFromDate(new Date()) === selectedMonth;
+                
+                return (
+                  <DropdownMenuItem
+                    key={format(month, 'yyyy-MM')}
+                    onClick={() => setSelectedMonth(monthString)}
+                    className={`
+                      cursor-pointer flex items-center justify-between px-3 py-2
+                      ${isSelected 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }
+                    `}
+                  >
+                    <span>{format(month, 'MMM/yyyy', { locale: ptBR })}</span>
+                    {isCurrent && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setShowAddExpense(!showAddExpense)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Despesa
+          </Button>
+        </div>
       </div>
-
-      {/* Month Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtrar por Mês</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonthSelector 
-            selectedMonth={selectedMonth} 
-            onMonthChange={setSelectedMonth} 
-          />
-        </CardContent>
-      </Card>
 
       {/* Resumo das despesas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -241,6 +312,7 @@ const CashExpenses = () => {
         </Card>
       </div>
 
+      
       {showAddExpense && (
         <Card>
           <CardHeader>
