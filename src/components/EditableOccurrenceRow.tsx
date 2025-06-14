@@ -11,12 +11,14 @@ interface EditableOccurrenceRowProps {
   transaction: FilteredRecurrentTransaction;
   onUpdateOccurrence: (id: string, occurrenceIndex: number, newAmount: number) => Promise<void>;
   onDeleteTransaction: (id: string) => Promise<void>;
+  onEditTransaction?: (expense: any) => void;
 }
 
 const EditableOccurrenceRow = ({ 
   transaction, 
   onUpdateOccurrence, 
-  onDeleteTransaction 
+  onDeleteTransaction,
+  onEditTransaction 
 }: EditableOccurrenceRowProps) => {
   const { toast } = useToast();
   const formatters = useFormatters();
@@ -59,6 +61,12 @@ const EditableOccurrenceRow = ({
   const handleCancel = () => {
     setEditAmount(transaction.amount.toString());
     setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    if (onEditTransaction) {
+      onEditTransaction(transaction);
+    }
   };
 
   // Permitir edição de todas as ocorrências agora
@@ -164,6 +172,16 @@ const EditableOccurrenceRow = ({
                   size="sm"
                   onClick={() => setIsEditing(true)}
                   className="h-8 w-8 p-0"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+              {onEditTransaction && !transaction.isRecurringOccurrence && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
