@@ -50,15 +50,15 @@ const DashboardHeader = ({
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                className="min-w-[140px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md"
+                className="min-w-[110px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md px-3 py-1.5"
               >
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
                     {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
                   </span>
                 </div>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
