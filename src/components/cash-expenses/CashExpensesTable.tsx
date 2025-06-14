@@ -8,8 +8,8 @@ interface CashExpensesTableProps {
   expenses: any[];
   monthlyTotal: number;
   selectedMonth: string;
-  onUpdateOccurrence: (transactionId: string, occurrenceIndex: number, newAmount: number) => void;
-  onDeleteExpense: (id: string) => void;
+  onUpdateOccurrence: (transactionId: string, occurrenceIndex: number, newAmount: number) => Promise<void>;
+  onDeleteExpense: (id: string) => Promise<void>;
 }
 
 const CashExpensesTable = ({ 
@@ -28,6 +28,11 @@ const CashExpensesTable = ({
     return formatters.dateMonthYear(date);
   };
 
+  // Determine color based on value (negative = green, positive = red)
+  const getTotalColorClass = (value: number) => {
+    return value < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -38,7 +43,7 @@ const CashExpensesTable = ({
           </CardTitle>
           <div className="text-right">
             <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-            <p className="text-xl font-bold text-red-600 dark:text-red-400">
+            <p className={`text-xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
               {formatters.currency(monthlyTotal)}
             </p>
           </div>

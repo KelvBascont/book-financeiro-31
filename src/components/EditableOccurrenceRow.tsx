@@ -26,7 +26,7 @@ const EditableOccurrenceRow = ({
 
   const handleSave = async () => {
     const newAmount = parseFloat(editAmount);
-    if (isNaN(newAmount) || newAmount <= 0) {
+    if (isNaN(newAmount) || newAmount === 0) {
       toast({
         title: "Erro",
         description: "Digite um valor válido",
@@ -65,6 +65,11 @@ const EditableOccurrenceRow = ({
   const canEdit = true;
   const canDelete = !transaction.isRecurringOccurrence; // Só pode deletar a transação original
 
+  // Determine color based on value (negative = green, positive = red)
+  const getAmountColorClass = (value: number) => {
+    return value < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  };
+
   return (
     <tr className="border-b border-gray-100 dark:border-gray-800">
       <td className="py-3 px-2">
@@ -88,7 +93,7 @@ const EditableOccurrenceRow = ({
           )}
         </div>
       </td>
-      <td className="py-3 px-2 font-medium text-red-600 dark:text-red-400">
+      <td className={`py-3 px-2 font-medium ${getAmountColorClass(transaction.amount)}`}>
         {isEditing ? (
           <Input
             type="number"
