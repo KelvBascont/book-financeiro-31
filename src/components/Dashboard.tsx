@@ -1,14 +1,12 @@
 
 import { useState, useMemo } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useFinancialCalculations } from '@/hooks/useFinancialCalculations';
 import { useCards } from '@/hooks/useCards';
-import { useCardExpenses } from '@/hooks/useCardExpenses';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useSavingsGoals } from '@/hooks/useSavingsGoals';
 import { useVehicles } from '@/hooks/useVehicles';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
-import { format, isWithinInterval, parse, addMonths } from 'date-fns';
+import { format, isWithinInterval, parse } from 'date-fns';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AssetsSummaryCards from '@/components/dashboard/AssetsSummaryCards';
 import FinancialSummaryCard from '@/components/dashboard/FinancialSummaryCard';
@@ -18,55 +16,18 @@ const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
-  const { 
-    monthlyData, 
-    loading 
-  } = useDashboardData();
-  
+  const { monthlyData, loading } = useDashboardData();
+  const { financialSummary } = useFinancialCalculations(selectedMonth);
   const { cards } = useCards();
-  const { cardExpenses } = useCardExpenses();
   const { investments } = useInvestments();
   const { savingsGoals } = useSavingsGoals();
   const { vehicles } = useVehicles();
-  const { cashExpenses, incomes } = useSupabaseData();
-  const { calculateTotalForMonth } = useRecurrenceFilter();
-
-  // Calculate financial summary data using the same logic as FinancialSpreadsheet
-  const financialSummaryData = useMemo(() => {
-    const monthString = format(selectedMonth, 'MM/yyyy');
-    
-    // Use recurring logic for incomes and cash expenses
-    const totalIncomes = calculateTotalForMonth(incomes, monthString);
-    const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
-    
-    // Calculate card expenses for selected month using real data
-    // Os gastos do cartão aparecem +1 mês após o mês de cobrança
-    const previousMonth = addMonths(selectedMonth, -1);
-    const previousMonthString = format(previousMonth, 'MM/yyyy');
-    
-    const totalCardExpenses = cardExpenses
-      .filter(expense => {
-        const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
-        return expenseMonth === previousMonthString;
-      })
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    
-    const currentBalance = totalIncomes - totalCashExpenses - totalCardExpenses;
-    
-    return {
-      totalIncome: totalIncomes,
-      totalExpenses: totalCashExpenses,
-      currentMonthCardExpenses: totalCardExpenses,
-      currentBalance
-    };
-  }, [selectedMonth, incomes, cashExpenses, cardExpenses, calculateTotalForMonth]);
 
   // Filtered data based on date range
   const filteredData = useMemo(() => {
     if (!dateFilter) {
       return {
         monthlyData,
-        cardExpenses,
         investments,
         savingsGoals,
         vehicles
@@ -83,26 +44,24 @@ const Dashboard = () => {
       return isWithinInterval(monthDate, { start: startDate, end: endDate });
     });
 
-    // Filter card expenses
-    const filteredCardExpenses = cardExpenses.filter(expense => {
-      const expenseDate = new Date(expense.billing_month);
-      return isWithinInterval(expenseDate, { start: startDate, end: endDate });
-    });
-
     return {
       monthlyData: filteredMonthlyData,
-      cardExpenses: filteredCardExpenses,
       investments,
       savingsGoals,
       vehicles
     };
-  }, [dateFilter, monthlyData, cardExpenses, investments, savingsGoals, vehicles]);
+  }, [dateFilter, monthlyData, investments, savingsGoals, vehicles]);
 
-  // Calculate values from filtered data
-  const totalInvestments = filteredData.investments.reduce((sum, inv) => sum + (inv.current_price * inv.quantity), 0);
-  const totalSavings = filteredData.savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
-  const totalCards = cards.length;
-  const totalVehicles = filteredData.vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
+  // Calculate asset totals
+  const assetTotals = useMemo(() => ({
+    totalInvestments: filteredData.investments.reduce((sum, inv) => sum + (inv.current_price * inv.quantity), 0),
+    totalSavings: filteredData.savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0),
+    totalCards: cards.length,
+    totalVehicles: filteredData.vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0),
+    investmentsCount: filteredData.investments.length,
+    savingsCount: filteredData.savingsGoals.length,
+    vehiclesCount: filteredData.vehicles.length
+  }), [filteredData, cards.length]);
 
   const handleFilterChange = (startDate: string, endDate: string) => {
     setDateFilter({ start: startDate, end: endDate });
@@ -133,7 +92,6 @@ const Dashboard = () => {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
       <DashboardHeader
         dateFilter={dateFilter}
         selectedMonth={selectedMonth}
@@ -142,25 +100,14 @@ const Dashboard = () => {
         onMonthChange={handleMonthChange}
       />
 
-      {/* Assets Summary Cards */}
-      <AssetsSummaryCards
-        totalInvestments={totalInvestments}
-        totalSavings={totalSavings}
-        totalCards={totalCards}
-        totalVehicles={totalVehicles}
-        investmentsCount={filteredData.investments.length}
-        savingsCount={filteredData.savingsGoals.length}
-        vehiclesCount={filteredData.vehicles.length}
-      />
+      <AssetsSummaryCards {...assetTotals} />
 
-      {/* Financial Summary Card */}
       <FinancialSummaryCard
-        financialSummaryData={financialSummaryData}
+        financialSummaryData={financialSummary}
         dateFilter={dateFilter}
         selectedMonth={selectedMonth}
       />
 
-      {/* Charts and Expenses Due Soon */}
       <ChartsSection monthlyData={filteredData.monthlyData} />
     </div>
   );

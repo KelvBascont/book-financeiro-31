@@ -2,6 +2,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, TrendingDown } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
+import { getBalanceColorClass } from '@/utils/styleHelpers';
 
 interface CashExpensesSummaryProps {
   monthlyTotal: number;
@@ -11,11 +12,6 @@ interface CashExpensesSummaryProps {
 const CashExpensesSummary = ({ monthlyTotal, expenseCount }: CashExpensesSummaryProps) => {
   const formatters = useFormatters();
 
-  // Determine color based on value (negative = green, positive = red)
-  const getTotalColorClass = (value: number) => {
-    return value < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500';
-  };
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card>
@@ -23,7 +19,7 @@ const CashExpensesSummary = ({ monthlyTotal, expenseCount }: CashExpensesSummary
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-              <p className={`text-2xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+              <p className={`text-2xl font-bold ${getBalanceColorClass(monthlyTotal)}`}>
                 {formatters.currency(monthlyTotal)}
               </p>
             </div>
