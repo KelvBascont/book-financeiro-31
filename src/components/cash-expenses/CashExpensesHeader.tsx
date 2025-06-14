@@ -45,6 +45,9 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
     return `${month}/${year}`;
   };
 
+  // Get current month string for comparison
+  const currentMonthString = getMonthStringFromDate(new Date());
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
@@ -74,7 +77,7 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
             {months.map((month) => {
               const monthString = getMonthStringFromDate(month);
               const isSelected = monthString === selectedMonth;
-              const isCurrent = getMonthStringFromDate(new Date()) === selectedMonth;
+              const isCurrent = monthString === currentMonthString;
               
               return (
                 <DropdownMenuItem
