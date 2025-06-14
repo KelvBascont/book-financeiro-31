@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -7,12 +8,14 @@ import { useCardExpenses } from '@/hooks/useCardExpenses';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useSavingsGoals } from '@/hooks/useSavingsGoals';
 import { useVehicles } from '@/hooks/useVehicles';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, PiggyBank, CreditCard, Car, FileSpreadsheet } from 'lucide-react';
 import ExpensesDueSoonCard from '@/components/ExpensesDueSoonCard';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import MonthChipsFilter from '@/components/MonthChipsFilter';
-import { format, isWithinInterval, parse } from 'date-fns';
+import { format, isWithinInterval, parse, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Dashboard = () => {
@@ -22,8 +25,6 @@ const Dashboard = () => {
   
   const { 
     monthlyData, 
-    totalIncome, 
-    totalExpenses, 
     loading 
   } = useDashboardData();
   
@@ -32,14 +33,44 @@ const Dashboard = () => {
   const { investments } = useInvestments();
   const { savingsGoals } = useSavingsGoals();
   const { vehicles } = useVehicles();
+  const { cashExpenses, incomes } = useSupabaseData();
+  const { calculateTotalForMonth } = useRecurrenceFilter();
+
+  // Calculate financial summary data using the same logic as FinancialSpreadsheet
+  const financialSummaryData = useMemo(() => {
+    const monthString = format(selectedMonth, 'MM/yyyy');
+    
+    // Use recurring logic for incomes and cash expenses
+    const totalIncomes = calculateTotalForMonth(incomes, monthString);
+    const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
+    
+    // Calculate card expenses for selected month using real data
+    // Os gastos do cartão aparecem +1 mês após o mês de cobrança
+    const previousMonth = addMonths(selectedMonth, -1);
+    const previousMonthString = format(previousMonth, 'MM/yyyy');
+    
+    const totalCardExpenses = cardExpenses
+      .filter(expense => {
+        const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
+        return expenseMonth === previousMonthString;
+      })
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    
+    const currentBalance = totalIncomes - totalCashExpenses - totalCardExpenses;
+    
+    return {
+      totalIncome: totalIncomes,
+      totalExpenses: totalCashExpenses,
+      currentMonthCardExpenses: totalCardExpenses,
+      currentBalance
+    };
+  }, [selectedMonth, incomes, cashExpenses, cardExpenses, calculateTotalForMonth]);
 
   // Filtered data based on date range
   const filteredData = useMemo(() => {
     if (!dateFilter) {
       return {
         monthlyData,
-        totalIncome,
-        totalExpenses,
         cardExpenses,
         investments,
         savingsGoals,
@@ -65,29 +96,18 @@ const Dashboard = () => {
 
     return {
       monthlyData: filteredMonthlyData,
-      totalIncome: filteredMonthlyData.reduce((sum, data) => sum + data.income, 0),
-      totalExpenses: filteredMonthlyData.reduce((sum, data) => sum + data.expenses, 0),
       cardExpenses: filteredCardExpenses,
       investments,
       savingsGoals,
       vehicles
     };
-  }, [dateFilter, monthlyData, totalIncome, totalExpenses, cardExpenses, investments, savingsGoals, vehicles]);
+  }, [dateFilter, monthlyData, cardExpenses, investments, savingsGoals, vehicles]);
 
   // Calculate values from filtered data
   const totalInvestments = filteredData.investments.reduce((sum, inv) => sum + (inv.current_price * inv.quantity), 0);
   const totalSavings = filteredData.savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
   const totalCards = cards.length;
   const totalVehicles = filteredData.vehicles.reduce((sum, vehicle) => sum + vehicle.total_amount, 0);
-
-  // Calculate card expenses for current month or filtered period
-  const currentMonth = format(new Date(), 'yyyy-MM');
-  const currentMonthCardExpenses = filteredData.cardExpenses
-    .filter(expense => expense.billing_month.startsWith(currentMonth))
-    .reduce((sum, expense) => sum + expense.amount, 0);
-
-  const currentBalance = filteredData.totalIncome - filteredData.totalExpenses - currentMonthCardExpenses;
-  const totalPatrimony = totalInvestments + totalSavings + totalVehicles + currentBalance;
 
   const handleFilterChange = (startDate: string, endDate: string) => {
     setDateFilter({ start: startDate, end: endDate });
@@ -204,7 +224,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Financial Summary Row */}
+      {/* Financial Summary Row - Now with 4 cards instead of 5 */}
       <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
@@ -213,35 +233,29 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Receitas</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatters.currency(filteredData.totalIncome)}
+                {formatters.currency(financialSummaryData.totalIncome)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Despesas em Dinheiro</p>
               <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatters.currency(filteredData.totalExpenses)}
+                {formatters.currency(financialSummaryData.totalExpenses)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Despesas com Cartão</p>
               <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {formatters.currency(currentMonthCardExpenses)}
+                {formatters.currency(financialSummaryData.currentMonthCardExpenses)}
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <p className="text-sm text-gray-600 dark:text-gray-300">Saldo do Período</p>
-              <p className={`text-2xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                {formatters.currency(currentBalance)}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Patrimônio Líquido</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {formatters.currency(totalPatrimony)}
+              <p className={`text-2xl font-bold ${financialSummaryData.currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatters.currency(financialSummaryData.currentBalance)}
               </p>
             </div>
           </div>
