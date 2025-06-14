@@ -1,8 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useFormatters } from '@/hooks/useFormatters';
 import { useCards } from '@/hooks/useCards';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
 import { useInvestments } from '@/hooks/useInvestments';
@@ -10,16 +8,13 @@ import { useSavingsGoals } from '@/hooks/useSavingsGoals';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, PiggyBank, CreditCard, Car, FileSpreadsheet } from 'lucide-react';
-import ExpensesDueSoonCard from '@/components/ExpensesDueSoonCard';
-import DateRangeFilter from '@/components/DateRangeFilter';
-import MonthChipsFilter from '@/components/MonthChipsFilter';
 import { format, isWithinInterval, parse, addMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import AssetsSummaryCards from '@/components/dashboard/AssetsSummaryCards';
+import FinancialSummaryCard from '@/components/dashboard/FinancialSummaryCard';
+import ChartsSection from '@/components/dashboard/ChartsSection';
 
 const Dashboard = () => {
-  const formatters = useFormatters();
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
@@ -139,167 +134,34 @@ const Dashboard = () => {
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">Visão geral das suas finanças</p>
-            </div>
-            <DateRangeFilter
-              onFilterChange={handleFilterChange}
-              onClearFilter={handleClearFilter}
-              isActive={!!dateFilter}
-            />
-          </div>
-          
-          {/* Month Chips Filter */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-            <MonthChipsFilter
-              selectedMonth={selectedMonth}
-              onMonthChange={handleMonthChange}
-            />
-          </div>
-        </div>
-      </div>
+      <DashboardHeader
+        dateFilter={dateFilter}
+        selectedMonth={selectedMonth}
+        onFilterChange={handleFilterChange}
+        onClearFilter={handleClearFilter}
+        onMonthChange={handleMonthChange}
+      />
 
-      {/* New Cards Row - Investments, Savings, Cards, Vehicles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Investimentos</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatters.currencyCompact(totalInvestments)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.investments.length} ativos</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Assets Summary Cards */}
+      <AssetsSummaryCards
+        totalInvestments={totalInvestments}
+        totalSavings={totalSavings}
+        totalCards={totalCards}
+        totalVehicles={totalVehicles}
+        investmentsCount={filteredData.investments.length}
+        savingsCount={filteredData.savingsGoals.length}
+        vehiclesCount={filteredData.vehicles.length}
+      />
 
-        <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Reservas/Metas</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatters.currencyCompact(totalSavings)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.savingsGoals.length} metas</p>
-              </div>
-              <PiggyBank className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Cartões</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{totalCards}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">cartões cadastrados</p>
-              </div>
-              <CreditCard className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Veículos</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {formatters.currencyCompact(totalVehicles)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{filteredData.vehicles.length} veículos</p>
-              </div>
-              <Car className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Financial Summary Row - Now with 4 cards instead of 5 */}
-      <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-            <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
-            Resumo Financeiro - {dateFilter ? `${dateFilter.start} a ${dateFilter.end}` : format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Receitas</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatters.currency(financialSummaryData.totalIncome)}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Despesas em Dinheiro</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatters.currency(financialSummaryData.totalExpenses)}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Despesas com Cartão</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {formatters.currency(financialSummaryData.currentMonthCardExpenses)}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Saldo do Período</p>
-              <p className={`text-2xl font-bold ${financialSummaryData.currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                {formatters.currency(financialSummaryData.currentBalance)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Financial Summary Card */}
+      <FinancialSummaryCard
+        financialSummaryData={financialSummaryData}
+        dateFilter={dateFilter}
+        selectedMonth={selectedMonth}
+      />
 
       {/* Charts and Expenses Due Soon */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Monthly Cash Flow Chart */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Fluxo de Caixa Mensal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={filteredData.monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
-                  <XAxis dataKey="month" stroke="#6b7280" className="dark:stroke-gray-300" />
-                  <YAxis tickFormatter={(value) => formatters.currency(value)} stroke="#6b7280" className="dark:stroke-gray-300" />
-                  <Tooltip 
-                    formatter={(value: number) => [formatters.currency(value), '']}
-                    labelFormatter={(label) => `Mês: ${label}`}
-                    contentStyle={{
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      color: 'var(--foreground)'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="income" fill="#16a34a" name="Receitas" />
-                  <Bar dataKey="expenses" fill="#dc2626" name="Despesas" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Expenses Due Soon Card */}
-        <div className="space-y-6">
-          <ExpensesDueSoonCard />
-        </div>
-      </div>
+      <ChartsSection monthlyData={filteredData.monthlyData} />
     </div>
   );
 };
