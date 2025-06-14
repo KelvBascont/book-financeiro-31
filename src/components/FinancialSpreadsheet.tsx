@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,10 +46,14 @@ const FinancialSpreadsheet = () => {
       const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
       
       // Calculate card expenses for specific month using real data
+      // Os gastos do cartão aparecem +1 mês após o mês de cobrança
+      const previousMonth = addMonths(date, -1);
+      const previousMonthString = format(previousMonth, 'MM/yyyy');
+      
       const cardExpensesForMonth = cardExpenses
         .filter(expense => {
           const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
-          return expenseMonth === monthString;
+          return expenseMonth === previousMonthString;
         })
         .reduce((sum, expense) => sum + expense.amount, 0);
 

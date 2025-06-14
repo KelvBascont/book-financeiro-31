@@ -24,10 +24,14 @@ export const usePrint = () => {
       const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
       
       // Calculate real card expenses for the month
+      // Os gastos do cartão aparecem +1 mês após o mês de cobrança
+      const previousMonth = addMonths(date, -1);
+      const previousMonthString = format(previousMonth, 'MM/yyyy');
+      
       const totalCardExpenses = cardExpenses
         .filter(expense => {
           const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
-          return expenseMonth === monthString;
+          return expenseMonth === previousMonthString;
         })
         .reduce((sum, expense) => sum + expense.amount, 0);
       
