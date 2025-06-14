@@ -122,11 +122,13 @@ const Cards = () => {
   };
 
   // Filtrar despesas por cartão selecionado (se houver)
-  const filteredExpenses = selectedCardForDetails 
+  const filteredExpenses = selectedCardForDetails && selectedCardForDetails !== ''
     ? monthlyExpenses.filter(expense => expense.card_id === selectedCardForDetails)
-    : monthlyExpenses;
+    : monthlyExpenses; // Quando "Todos" está selecionado ou nenhum filtro, mostra todas
 
-  const selectedCard = cards.find(c => c.id === selectedCardForDetails);
+  const selectedCard = selectedCardForDetails && selectedCardForDetails !== ''
+    ? cards.find(c => c.id === selectedCardForDetails)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 space-y-6">
@@ -195,11 +197,11 @@ const Cards = () => {
         onCardChange={setSelectedCardForDetails}
       />
 
-      {/* Expense Details Table */}
-      {selectedCardForDetails && (
+      {/* Expense Details Table - Modificar a condição para mostrar quando há filtro ou quando "Todos" está selecionado */}
+      {(selectedCardForDetails !== '' || selectedCardForDetails === '') && monthlyExpenses.length > 0 && (
         <ExpenseDetailsTable
           expenses={filteredExpenses}
-          selectedCard={selectedCard}
+          selectedCard={selectedCard || { name: 'Todos os Cartões', closing_date: 'Variável' }}
           selectedMonth={selectedMonth}
           onViewExpense={handleViewExpense}
           onEditExpense={handleEditExpense}

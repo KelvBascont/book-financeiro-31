@@ -26,17 +26,21 @@ const ExpenseDetailsTable = ({
 }: ExpenseDetailsTableProps) => {
   const formatters = useFormatters();
 
-  if (!selectedCard) return null;
+  // Não retornar null quando selectedCard for null - mostrar para "Todos"
+  if (!selectedCard && expenses.length === 0) return null;
 
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          Despesas Detalhadas - {selectedCard.name} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
+          Despesas Detalhadas - {selectedCard?.name || 'Todos os Cartões'} ({format(selectedMonth, 'MMMM/yyyy', { locale: ptBR })})
         </CardTitle>
         <p className="text-sm text-gray-400 mt-1">
-          {expenses.length} compra{expenses.length !== 1 ? 's' : ''} nesta fatura • Fechamento dia {selectedCard.closing_date}
+          {expenses.length} compra{expenses.length !== 1 ? 's' : ''} nesta fatura
+          {selectedCard?.closing_date && selectedCard.closing_date !== 'Variável' && (
+            <> • Fechamento dia {selectedCard.closing_date}</>
+          )}
         </p>
       </CardHeader>
       <CardContent>
