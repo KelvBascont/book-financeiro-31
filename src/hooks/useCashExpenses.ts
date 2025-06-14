@@ -13,6 +13,7 @@ export interface CashExpense {
   is_recurring: boolean;
   recurrence_months?: number;
   user_id: string;
+  category_id?: string;
 }
 
 export const useCashExpenses = () => {

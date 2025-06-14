@@ -33,7 +33,7 @@ export const useCategories = () => {
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      setCategories((data || []) as Category[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast({
@@ -56,7 +56,7 @@ export const useCategories = () => {
 
       if (error) throw error;
       
-      setCategories(prev => [...prev, data]);
+      setCategories(prev => [...prev, data as Category]);
       toast({
         title: "Sucesso",
         description: "Categoria adicionada com sucesso"
@@ -85,7 +85,7 @@ export const useCategories = () => {
 
       if (error) throw error;
       
-      setCategories(prev => prev.map(cat => cat.id === id ? data : cat));
+      setCategories(prev => prev.map(cat => cat.id === id ? data as Category : cat));
       toast({
         title: "Sucesso",
         description: "Categoria atualizada com sucesso"
