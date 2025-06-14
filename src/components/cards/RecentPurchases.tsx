@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CardExpense } from '@/hooks/useCardExpenses';
 
@@ -23,6 +23,8 @@ const RecentPurchases = ({ expenses, cards }: RecentPurchasesProps) => {
         <div className="space-y-4">
           {expenses.slice(0, 4).map((expense) => {
             const card = cards.find(c => c.id === expense.card_id);
+            // Adicionar 1 mês ao billing_month para mostrar o mês seguinte
+            const displayMonth = addMonths(new Date(expense.billing_month), 1);
             return (
               <div key={expense.id} className="p-4 border border-gray-700 rounded-lg bg-gray-700/50">
                 <div className="flex items-center justify-between">
@@ -33,7 +35,7 @@ const RecentPurchases = ({ expenses, cards }: RecentPurchasesProps) => {
                     </p>
                     <div className="mt-1">
                       <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                        Fatura: {format(new Date(expense.billing_month), 'MMM/yyyy', { locale: ptBR })}
+                        Fatura: {format(displayMonth, 'MMM/yyyy', { locale: ptBR })}
                       </span>
                     </div>
                   </div>
