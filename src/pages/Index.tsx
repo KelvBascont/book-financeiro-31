@@ -1,22 +1,15 @@
 
-import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import Navigation from '@/components/Navigation';
 import Dashboard from '@/components/Dashboard';
-import CashExpenses from '@/components/CashExpenses';
-import Income from '@/components/Income';
-import Cards from '@/components/Cards';
-import Investments from '@/components/Investments';
-import Savings from '@/components/Savings';
-import Vehicles from '@/components/Vehicles';
-import FinancialSpreadsheet from '@/components/FinancialSpreadsheet';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/AppSidebar';
+import Header from '@/components/Header';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
 
   if (loading) {
     return (
@@ -38,41 +31,19 @@ const Index = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'cash-expenses':
-        return <CashExpenses />;
-      case 'incomes':
-        return <Income />;
-      case 'cards':
-        return <Cards />;
-      case 'spreadsheet':
-        return <FinancialSpreadsheet />;
-      case 'investments':
-        return <Investments />;
-      case 'savings':
-        return <Savings />;
-      case 'vehicles':
-        return <Vehicles />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation />
-        
-        {/* Main content */}
-        <div className="md:pl-64">
-          <main className="flex-1 transition-all duration-300">
-            {renderCurrentView()}
-          </main>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset>
+            <Header />
+            <main className="flex-1 overflow-auto p-4">
+              <Dashboard />
+            </main>
+          </SidebarInset>
         </div>
-      </div>
+      </SidebarProvider>
     </ProtectedRoute>
   );
 };

@@ -1,16 +1,13 @@
 
-import { LogOut, User, Menu } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-interface HeaderProps {
-  onToggleSidebar?: () => void;
-}
-
-const Header = ({ onToggleSidebar }: HeaderProps) => {
+const Header = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -48,46 +45,32 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {onToggleSidebar && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleSidebar}
-              className="lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">FinanceApp</h1>
-        </div>
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      
+      <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+        <ThemeToggle />
         
-        <div className="flex items-center gap-2 sm:gap-4">
-          <ThemeToggle />
-          
-          {user && (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden sm:flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-32">
-                  {getUserName()}
-                </span>
-              </div>
-              
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 sm:gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
+        {user && (
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground truncate max-w-32">
+                {getUserName()}
+              </span>
             </div>
-          )}
-        </div>
+            
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1 sm:gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );

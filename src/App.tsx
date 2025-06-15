@@ -6,7 +6,7 @@ import Auth from '@/pages/Auth';
 import Dashboard from '@/components/Dashboard';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Navigation from '@/components/Navigation';
+import AppSidebar from '@/components/AppSidebar';
 import CashExpenses from '@/components/CashExpenses';
 import Income from '@/components/Income';
 import Cards from '@/components/Cards';
@@ -20,6 +20,8 @@ import { FinancialProvider } from '@/contexts/FinancialContext';
 import Categories from '@/components/Categories';
 import MonthlyBudgets from '@/components/MonthlyBudgets';
 import Bills from '@/components/Bills';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import Header from '@/components/Header';
 
 const queryClient = new QueryClient();
 
@@ -35,112 +37,167 @@ function App() {
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Dashboard />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Dashboard />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/cash-expenses" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <CashExpenses />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <CashExpenses />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/income" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Income />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Income />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/cards" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Cards />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Cards />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/categories" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Categories />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Categories />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/budgets" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <MonthlyBudgets />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <MonthlyBudgets />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/bills" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Bills />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Bills />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/investments" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Investments />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Investments />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/savings" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Savings />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Savings />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/vehicles" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <Vehicles />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <Vehicles />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="/spreadsheet" element={
                     <ProtectedRoute>
-                      <div className="flex h-screen">
-                        <Navigation />
-                        <main className="flex-1 overflow-auto">
-                          <FinancialSpreadsheet />
-                        </main>
-                      </div>
+                      <SidebarProvider>
+                        <div className="min-h-screen flex w-full">
+                          <AppSidebar />
+                          <SidebarInset>
+                            <Header />
+                            <main className="flex-1 overflow-auto p-4">
+                              <FinancialSpreadsheet />
+                            </main>
+                          </SidebarInset>
+                        </div>
+                      </SidebarProvider>
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />
