@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -25,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 
 const Cards = () => {
-  const { cards, deleteCard } = useSupabaseTables();
+  const { cards, addCard, updateCard, deleteCard } = useSupabaseTables();
   const { addCardExpense, updateCardExpense, deleteCardExpense } = useCardExpenses();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showCardForm, setShowCardForm] = useState(false);
@@ -77,19 +78,33 @@ const Cards = () => {
     setShowEditBillModal(true);
   };
 
-  const handleCardFormSubmit = (cardData: any) => {
-    if (editingCard) {
-      // updateCard function will be called through useSupabaseTables
-    } else {
-      // addCard function will be called through useSupabaseTables
+  const handleCardFormSubmit = async (cardData: any) => {
+    try {
+      if (editingCard) {
+        await updateCard(editingCard.id, cardData);
+      } else {
+        await addCard(cardData);
+      }
+      setShowCardForm(false);
+      setEditingCard(null);
+    } catch (error) {
+      console.error('Erro ao salvar cartão:', error);
     }
-    setShowCardForm(false);
-    setEditingCard(null);
   };
 
   const handleCardFormCancel = () => {
     setShowCardForm(false);
     setEditingCard(null);
+  };
+
+  const handleAddCard = () => {
+    setEditingCard(null);
+    setShowCardForm(true);
+  };
+
+  const handleEditCard = (card: any) => {
+    setEditingCard(card);
+    setShowCardForm(true);
   };
 
   // Funções CRUD para despesas detalhadas
@@ -141,13 +156,8 @@ const Cards = () => {
         <div className="flex items-center gap-4">
           <CardsModal
             cards={cards}
-            onAddCard={() => {
-              setShowCardForm(true);
-            }}
-            onEditCard={(card) => {
-              setEditingCard(card);
-              setShowCardForm(true);
-            }}
+            onAddCard={handleAddCard}
+            onEditCard={handleEditCard}
             onDeleteCard={deleteCard}
           />
           <Button 
@@ -209,6 +219,16 @@ const Cards = () => {
         />
       )}
 
+      {/* Card Form Modal */}
+      {showCardForm && (
+        <CardForm
+          showForm={showCardForm}
+          editingCard={editingCard}
+          onSubmit={handleCardFormSubmit}
+          onCancel={handleCardFormCancel}
+        />
+      )}
+
       {/* Modais */}
       <ExpenseModal
         open={showExpenseModal}
@@ -222,13 +242,6 @@ const Cards = () => {
         onOpenChange={setShowPayBillModal}
         bill={selectedBill}
         onConfirmPayment={handleConfirmPayment}
-      />
-
-      <CardForm
-        showForm={showCardForm}
-        editingCard={editingCard}
-        onSubmit={handleCardFormSubmit}
-        onCancel={handleCardFormCancel}
       />
 
       <ViewExpenseModal

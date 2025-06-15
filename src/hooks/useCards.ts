@@ -22,6 +22,7 @@ export const useCards = () => {
   const fetchCards = async () => {
     if (!user) return;
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('cards')
         .select('*')
@@ -37,6 +38,8 @@ export const useCards = () => {
         description: "Erro ao carregar cartões",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,18 +54,10 @@ export const useCards = () => {
 
       if (error) throw error;
       setCards(prev => [data, ...prev]);
-      toast({
-        title: "Sucesso",
-        description: "Cartão adicionado com sucesso"
-      });
       return data;
     } catch (error) {
       console.error('Error adding card:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao adicionar cartão",
-        variant: "destructive"
-      });
+      throw error;
     }
   };
 
@@ -78,18 +73,10 @@ export const useCards = () => {
 
       if (error) throw error;
       setCards(prev => prev.map(card => card.id === id ? data : card));
-      toast({
-        title: "Sucesso",
-        description: "Cartão atualizado com sucesso"
-      });
       return data;
     } catch (error) {
       console.error('Error updating card:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar cartão",
-        variant: "destructive"
-      });
+      throw error;
     }
   };
 
@@ -119,8 +106,7 @@ export const useCards = () => {
 
   useEffect(() => {
     if (user) {
-      setLoading(true);
-      fetchCards().finally(() => setLoading(false));
+      fetchCards();
     }
   }, [user]);
 
