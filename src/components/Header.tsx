@@ -62,7 +62,11 @@ const Header = () => {
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />
       
-      <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+      <div className="flex-1 flex justify-center">
+        <h1 className="text-xl font-bold text-primary">App Financeiro</h1>
+      </div>
+      
+      <div className="flex items-center gap-2 sm:gap-4">
         <Popover>
           <PopoverTrigger asChild>
             <Button

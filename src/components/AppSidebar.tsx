@@ -13,7 +13,6 @@ import {
   Tag, 
   Target, 
   DollarSign,
-  Wallet,
   BarChart3,
   Settings
 } from 'lucide-react';
@@ -74,12 +73,7 @@ const AppSidebar = () => {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <Wallet className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">App Financeiro</span>
-        </div>
-      </SidebarHeader>
+      <SidebarHeader />
       <SidebarContent>
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label}>
