@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, DollarSign, TrendingUp, AlertTriangle, Bell } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useFormatters } from '@/hooks/useFormatters';
 import BillForm from './bills/BillForm';
 import BillsList from './bills/BillsList';
 import NotificationCenter from './notifications/NotificationCenter';
+import type { Bill } from '@/hooks/useBills';
 
 const Bills = () => {
   const { bills, loading, createBill, updateBill, deleteBill, markAsPaid } = useBills();
@@ -23,10 +24,10 @@ const Bills = () => {
   const formatters = useFormatters();
   
   const [showForm, setShowForm] = useState(false);
-  const [editingBill, setEditingBill] = useState(null);
-  const [viewingBill, setViewingBill] = useState(null);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [viewingBill, setViewingBill] = useState<Bill | null>(null);
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (data: any) => {
     try {
       if (editingBill) {
         await updateBill(editingBill.id, data);
@@ -40,12 +41,12 @@ const Bills = () => {
     }
   };
 
-  const handleEdit = (bill) => {
+  const handleEdit = (bill: Bill) => {
     setEditingBill(bill);
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta conta?')) {
       await deleteBill(id);
     }
@@ -54,11 +55,11 @@ const Bills = () => {
   // Calcular estatísticas
   const totalPayable = bills
     .filter(b => b.type === 'payable' && b.status === 'pending')
-    .reduce((sum, b) => sum + b.amount, 0);
+    .reduce((sum, b) => sum + Number(b.amount), 0);
 
   const totalReceivable = bills
     .filter(b => b.type === 'receivable' && b.status === 'pending')
-    .reduce((sum, b) => sum + b.amount, 0);
+    .reduce((sum, b) => sum + Number(b.amount), 0);
 
   const overdueBills = bills.filter(b => 
     b.status === 'overdue' || 

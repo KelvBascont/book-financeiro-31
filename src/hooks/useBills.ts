@@ -2,25 +2,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-export interface Bill {
-  id: string;
-  user_id: string;
-  title: string;
-  description?: string;
-  amount: number;
-  type: 'payable' | 'receivable';
-  category_id?: string;
-  due_date: string;
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
-  paid_date?: string;
-  paid_amount?: number;
-  is_recurring?: boolean;
-  recurrence_months?: number;
-  reminder_days: number;
-  created_at: string;
-  updated_at: string;
-}
+type Bill = Database['public']['Tables']['bills']['Row'];
+type BillInsert = Database['public']['Tables']['bills']['Insert'];
 
 export const useBills = () => {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -49,7 +34,7 @@ export const useBills = () => {
     }
   };
 
-  const createBill = async (billData: Omit<Bill, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const createBill = async (billData: Omit<BillInsert, 'user_id'>) => {
     try {
       const { data, error } = await supabase
         .from('bills')
@@ -154,3 +139,5 @@ export const useBills = () => {
     refreshBills: fetchBills,
   };
 };
+
+export type { Bill };

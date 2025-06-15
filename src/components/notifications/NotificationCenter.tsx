@@ -10,11 +10,11 @@ import {
   AlertTriangle, 
   CheckCircle, 
   DollarSign,
-  MarkAsRead,
+  Check,
   Trash2,
   Settings
 } from 'lucide-react';
-import { Notification } from '@/hooks/useNotifications';
+import type { Notification } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 
 interface NotificationCenterProps {
@@ -127,7 +127,7 @@ const NotificationCenter = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <Badge size="sm" className={getTypeColor(notification.type)}>
+                    <Badge className={getTypeColor(notification.type)}>
                       {getTypeLabel(notification.type)}
                     </Badge>
                     {!notification.is_read && (
@@ -151,7 +151,7 @@ const NotificationCenter = ({
                       size="sm"
                       onClick={() => onMarkAsRead(notification.id)}
                     >
-                      <MarkAsRead className="h-4 w-4" />
+                      <Check className="h-4 w-4" />
                     </Button>
                   )}
                   <Button

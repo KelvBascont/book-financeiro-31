@@ -2,17 +2,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: 'bill_reminder' | 'bill_overdue' | 'payment_received' | 'system';
-  reference_id?: string;
-  is_read: boolean;
-  created_at: string;
-}
+type Notification = Database['public']['Tables']['notifications']['Row'];
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -115,3 +107,5 @@ export const useNotifications = () => {
     refreshNotifications: fetchNotifications,
   };
 };
+
+export type { Notification };

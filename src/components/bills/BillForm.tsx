@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCategories } from '@/hooks/useCategories';
-import { Bill } from '@/hooks/useBills';
+import type { Bill } from '@/hooks/useBills';
 
 interface BillFormProps {
   bill?: Bill;
@@ -22,7 +22,7 @@ const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
     title: bill?.title || '',
     description: bill?.description || '',
     amount: bill?.amount || 0,
-    type: bill?.type || 'payable',
+    type: bill?.type || 'payable' as 'payable' | 'receivable',
     category_id: bill?.category_id || '',
     due_date: bill?.due_date || '',
     is_recurring: bill?.is_recurring || false,
