@@ -20,7 +20,7 @@ interface SubcategoryFormProps {
   isEditing: boolean;
   editingSubcategory?: any;
   categories: Category[];
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: SubcategoryFormData) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -63,12 +63,7 @@ const SubcategoryForm = ({
 
     setIsSubmitting(true);
     try {
-      if (isEditing && editingSubcategory) {
-        await onSubmit(editingSubcategory.id, formData);
-      } else {
-        await onSubmit(formData);
-      }
-      onCancel();
+      await onSubmit(formData);
     } catch (error) {
       console.error('Error submitting subcategory:', error);
     } finally {

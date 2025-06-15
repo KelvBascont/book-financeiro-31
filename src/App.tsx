@@ -1,29 +1,32 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from './components/ui/theme-provider';
-import { Auth } from '@/pages/auth';
-import { Dashboard } from '@/pages/dashboard';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { Auth } from '@/pages/Auth';
+import { Dashboard } from '@/components/Dashboard';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Navigation } from '@/components/Navigation';
-import { CashExpenses } from '@/pages/cash-expenses';
-import { Income } from '@/pages/income';
-import { Cards } from '@/pages/cards';
-import { Investments } from '@/pages/investments';
-import { Savings } from '@/pages/savings';
-import { Vehicles } from '@/pages/vehicles';
-import { FinancialSpreadsheet } from '@/pages/spreadsheet';
-import { NotFound } from '@/pages/not-found';
-import { QueryClient } from 'react-query';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Navigation from '@/components/Navigation';
+import { CashExpenses } from '@/components/CashExpenses';
+import { Income } from '@/components/Income';
+import { Cards } from '@/components/Cards';
+import { Investments } from '@/components/Investments';
+import { Savings } from '@/components/Savings';
+import { Vehicles } from '@/components/Vehicles';
+import { FinancialSpreadsheet } from '@/components/FinancialSpreadsheet';
+import { NotFound } from '@/pages/NotFound';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FinancialProvider } from '@/contexts/FinancialContext';
 import Categories from '@/components/Categories';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <AuthProvider>
-          <QueryClient>
+          <QueryClientProvider client={queryClient}>
             <FinancialProvider>
               <div className="min-h-screen bg-background">
                 <Routes>
@@ -122,7 +125,7 @@ function App() {
                 </Routes>
               </div>
             </FinancialProvider>
-          </QueryClient>
+          </QueryClientProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

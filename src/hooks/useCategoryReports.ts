@@ -72,35 +72,39 @@ export const useCategoryReports = () => {
       }
     });
 
-    // Processar despesas de cartão
+    // Processar despesas de cartão (verificar se category_id existe na resposta)
     cardExpenses.forEach(expense => {
-      if (expense.category_id && categoryData[expense.category_id]) {
+      // Como category_id pode não existir no tipo CardExpense, usamos any temporariamente
+      const expenseWithCategory = expense as any;
+      if (expenseWithCategory.category_id && categoryData[expenseWithCategory.category_id]) {
         const expenseYear = new Date(expense.billing_month).getFullYear();
         if (expenseYear === selectedYear) {
-          categoryData[expense.category_id].totalAmount += expense.amount;
-          categoryData[expense.category_id].transactionCount += 1;
+          categoryData[expenseWithCategory.category_id].totalAmount += expense.amount;
+          categoryData[expenseWithCategory.category_id].transactionCount += 1;
 
           // Adicionar aos dados mensais
           const monthIndex = new Date(expense.billing_month).getMonth();
-          if (categoryData[expense.category_id].monthlyData[monthIndex]) {
-            categoryData[expense.category_id].monthlyData[monthIndex].amount += expense.amount;
+          if (categoryData[expenseWithCategory.category_id].monthlyData[monthIndex]) {
+            categoryData[expenseWithCategory.category_id].monthlyData[monthIndex].amount += expense.amount;
           }
         }
       }
     });
 
-    // Processar receitas
+    // Processar receitas (verificar se category_id existe na resposta)
     incomes.forEach(income => {
-      if (income.category_id && categoryData[income.category_id]) {
+      // Como category_id pode não existir no tipo Income, usamos any temporariamente
+      const incomeWithCategory = income as any;
+      if (incomeWithCategory.category_id && categoryData[incomeWithCategory.category_id]) {
         const incomeYear = new Date(income.date).getFullYear();
         if (incomeYear === selectedYear) {
-          categoryData[income.category_id].totalAmount += income.amount;
-          categoryData[income.category_id].transactionCount += 1;
+          categoryData[incomeWithCategory.category_id].totalAmount += income.amount;
+          categoryData[incomeWithCategory.category_id].transactionCount += 1;
 
           // Adicionar aos dados mensais
           const monthIndex = new Date(income.date).getMonth();
-          if (categoryData[income.category_id].monthlyData[monthIndex]) {
-            categoryData[income.category_id].monthlyData[monthIndex].amount += income.amount;
+          if (categoryData[incomeWithCategory.category_id].monthlyData[monthIndex]) {
+            categoryData[incomeWithCategory.category_id].monthlyData[monthIndex].amount += income.amount;
           }
         }
       }
