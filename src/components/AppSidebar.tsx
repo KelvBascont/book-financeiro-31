@@ -37,37 +37,37 @@ const AppSidebar = () => {
     {
       label: "Principal",
       items: [
-        { name: 'Dashboard', href: '/', icon: Home },
+        { name: 'Dashboard', href: '/', icon: Home, color: 'text-blue-600' },
       ]
     },
     {
       label: "Movimentações",
       items: [
-        { name: 'Despesas Correntes', href: '/cash-expenses', icon: Receipt },
-        { name: 'Receitas', href: '/income', icon: TrendingUp },
-        { name: 'Cartões', href: '/cards', icon: CreditCard },
-        { name: 'Contas', href: '/bills', icon: DollarSign },
+        { name: 'Despesas', href: '/cash-expenses', icon: Receipt, color: 'text-red-600' },
+        { name: 'Receitas', href: '/income', icon: TrendingUp, color: 'text-green-600' },
+        { name: 'Cartões', href: '/cards', icon: CreditCard, color: 'text-purple-600' },
+        { name: 'Contas', href: '/bills', icon: DollarSign, color: 'text-yellow-600' },
       ]
     },
     {
       label: "Planejamento",
       items: [
-        { name: 'Categorias', href: '/categories', icon: Tag },
-        { name: 'Orçamentos', href: '/budgets', icon: Target },
+        { name: 'Categorias', href: '/categories', icon: Tag, color: 'text-orange-600' },
+        { name: 'Orçamentos', href: '/budgets', icon: Target, color: 'text-pink-600' },
       ]
     },
     {
       label: "Investimentos & Patrimônio",
       items: [
-        { name: 'Investimentos', href: '/investments', icon: LineChart },
-        { name: 'Poupança', href: '/savings', icon: PiggyBank },
-        { name: 'Veículos', href: '/vehicles', icon: Car },
+        { name: 'Investimentos', href: '/investments', icon: LineChart, color: 'text-indigo-600' },
+        { name: 'Poupança', href: '/savings', icon: PiggyBank, color: 'text-emerald-600' },
+        { name: 'Veículos', href: '/vehicles', icon: Car, color: 'text-slate-600' },
       ]
     },
     {
       label: "Relatórios",
       items: [
-        { name: 'Planilha', href: '/spreadsheet', icon: FileSpreadsheet },
+        { name: 'Planilha', href: '/spreadsheet', icon: FileSpreadsheet, color: 'text-cyan-600' },
       ]
     }
   ];
@@ -90,7 +90,7 @@ const AppSidebar = () => {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)}>
                       <Link to={item.href}>
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className={`h-4 w-4 ${item.color} group-data-[collapsible=icon]:${item.color}`} />
                         <span>{item.name}</span>
                       </Link>
                     </SidebarMenuButton>

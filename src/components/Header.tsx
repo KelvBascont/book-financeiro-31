@@ -1,5 +1,5 @@
 
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -49,6 +49,18 @@ const Header = () => {
       <SidebarTrigger className="-ml-1" />
       
       <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 relative"
+        >
+          <Bell className="h-4 w-4" />
+          <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+            3
+          </span>
+          <span className="sr-only">Notificações</span>
+        </Button>
+        
         <ThemeToggle />
         
         {user && (
