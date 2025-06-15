@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useFinancialCalculations } from '@/hooks/useFinancialCalculations';
@@ -94,7 +93,8 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-3 sm:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Cabeçalho */}
       <DashboardHeader
         dateFilter={dateFilter}
         selectedMonth={selectedMonth}
@@ -103,23 +103,35 @@ const Dashboard = () => {
         onMonthChange={handleMonthChange}
       />
 
+      {/* Cards de Resumo de Ativos */}
       <AssetsSummaryCards {...assetTotals} />
 
+      {/* Resumo Financeiro */}
       <FinancialSummaryCard
         financialSummaryData={financialSummary}
         dateFilter={dateFilter}
         selectedMonth={selectedMonth}
       />
 
-      {/* Nova Seção de Insights Avançados */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <AdvancedInsightsCard />
-        <IntelligentAlertsCard />
-        <div className="lg:col-span-2 xl:col-span-1">
-          <CashFlowPredictionsCard />
+      {/* Seção de Insights e Análises Inteligentes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Insights Inteligentes - Card principal */}
+        <div className="lg:col-span-2">
+          <AdvancedInsightsCard />
+        </div>
+        
+        {/* Alertas Inteligentes */}
+        <div>
+          <IntelligentAlertsCard />
         </div>
       </div>
 
+      {/* Previsões de Fluxo de Caixa */}
+      <div className="grid grid-cols-1">
+        <CashFlowPredictionsCard />
+      </div>
+
+      {/* Gráficos e Análises */}
       <ChartsSection monthlyData={filteredData.monthlyData} />
     </div>
   );
