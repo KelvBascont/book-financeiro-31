@@ -167,28 +167,77 @@ const Income = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h1>
           <p className="text-gray-600 dark:text-gray-300">Gerencie suas receitas mensais</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full sm:w-48 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-lg transition-all duration-200">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="truncate">{getSelectedMonthLabel()}</span>
-                <ChevronDown className="h-4 w-4 ml-auto" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="max-h-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl">
-              {generateMonthOptions().map(option => (
-                <SelectItem 
-                  key={option.value} 
-                  value={option.value}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => setShowAddIncome(!showAddIncome)} className="w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Styled Month Filter */}
+          <div className="relative">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="
+                w-full sm:w-52 h-11 px-4 py-2.5
+                bg-gradient-to-r from-blue-600 to-blue-700 
+                hover:from-blue-700 hover:to-blue-800 
+                border-blue-600 hover:border-blue-700
+                text-white font-medium
+                rounded-xl shadow-lg hover:shadow-xl
+                transition-all duration-300 ease-in-out
+                transform hover:scale-[1.02]
+                focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
+                dark:focus:ring-offset-gray-900
+              ">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-1.5 bg-white/20 rounded-lg">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col items-start min-w-0 flex-1">
+                    <span className="text-xs opacity-90 font-normal">Período</span>
+                    <span className="text-sm font-semibold truncate">
+                      {getSelectedMonthLabel()}
+                    </span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 opacity-80" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="
+                w-52 max-h-64 
+                bg-white dark:bg-gray-800 
+                border border-gray-200 dark:border-gray-700 
+                shadow-2xl rounded-xl
+                backdrop-blur-sm
+              ">
+                {generateMonthOptions().map(option => (
+                  <SelectItem 
+                    key={option.value} 
+                    value={option.value}
+                    className="
+                      cursor-pointer px-3 py-2.5 mx-1 my-0.5 rounded-lg
+                      hover:bg-blue-50 dark:hover:bg-gray-700 
+                      focus:bg-blue-100 dark:focus:bg-gray-600
+                      transition-colors duration-150
+                      text-gray-700 dark:text-gray-200
+                      font-medium
+                    "
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span className="capitalize">{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button 
+            onClick={() => setShowAddIncome(!showAddIncome)} 
+            className="
+              w-full sm:w-auto h-11 px-6
+              bg-gradient-to-r from-green-600 to-green-700 
+              hover:from-green-700 hover:to-green-800
+              text-white font-medium rounded-xl
+              shadow-lg hover:shadow-xl
+              transition-all duration-300 ease-in-out
+              transform hover:scale-[1.02]
+            "
+          >
             <PlusCircle className="h-4 w-4 mr-2" />
             {showAddIncome ? 'Cancelar' : 'Nova Receita'}
           </Button>
@@ -197,30 +246,34 @@ const Income = () => {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-                <p className={`text-2xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Total do Mês</p>
+                <p className={`text-3xl font-bold ${getTotalColorClass(monthlyTotal)} mt-1`}>
                   {formatters.currency(monthlyTotal)}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                <TrendingUp className="h-7 w-7 text-green-600 dark:text-green-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Qtd. Receitas</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Qtd. Receitas</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
                   {filteredIncomes.length}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-500" />
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <TrendingUp className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -337,7 +390,7 @@ const Income = () => {
       )}
 
       {/* Table */}
-      <Card>
+      <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
