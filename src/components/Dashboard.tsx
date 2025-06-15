@@ -11,6 +11,9 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AssetsSummaryCards from '@/components/dashboard/AssetsSummaryCards';
 import FinancialSummaryCard from '@/components/dashboard/FinancialSummaryCard';
 import ChartsSection from '@/components/dashboard/ChartsSection';
+import AdvancedInsightsCard from '@/components/dashboard/AdvancedInsightsCard';
+import CashFlowPredictionsCard from '@/components/dashboard/CashFlowPredictionsCard';
+import IntelligentAlertsCard from '@/components/dashboard/IntelligentAlertsCard';
 
 const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
@@ -107,6 +110,15 @@ const Dashboard = () => {
         dateFilter={dateFilter}
         selectedMonth={selectedMonth}
       />
+
+      {/* Nova Seção de Insights Avançados */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <AdvancedInsightsCard />
+        <IntelligentAlertsCard />
+        <div className="lg:col-span-2 xl:col-span-1">
+          <CashFlowPredictionsCard />
+        </div>
+      </div>
 
       <ChartsSection monthlyData={filteredData.monthlyData} />
     </div>
