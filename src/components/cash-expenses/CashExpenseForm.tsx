@@ -4,75 +4,53 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Wallet } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
-
-interface ExpenseFormData {
-  description: string;
-  amount: string;
-  date: string;
-  due_date: string;
-  is_recurring: boolean;
-  recurrence_months: string;
-  category_id: string;
-}
+import type { CashExpenseForm as CashExpenseFormType } from '@/hooks/useCashExpenseForm';
 
 interface CashExpenseFormProps {
   isVisible: boolean;
   isEditing: boolean;
-  formData: ExpenseFormData;
-  onFormChange: (data: ExpenseFormData) => void;
-  onSubmit: () => void;
+  formData: CashExpenseFormType;
+  onFormChange: (data: CashExpenseFormType) => void;
+  onSubmit: () => Promise<void>;
   onCancel: () => void;
 }
 
-const CashExpenseForm = ({ 
-  isVisible, 
-  isEditing, 
-  formData, 
-  onFormChange, 
-  onSubmit, 
-  onCancel 
+const CashExpenseForm = ({
+  isVisible,
+  isEditing,
+  formData,
+  onFormChange,
+  onSubmit,
+  onCancel
 }: CashExpenseFormProps) => {
   const { expenseCategories, loading: categoriesLoading } = useCategories();
 
   if (!isVisible) return null;
 
-  const handleFieldChange = (field: keyof ExpenseFormData, value: string | boolean) => {
-    onFormChange({
-      ...formData,
-      [field]: value
-    });
+  const handleSubmit = async () => {
+    await onSubmit();
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Wallet className="h-5 w-5" />
+          <Receipt className="h-5 w-5" />
           {isEditing ? 'Editar Despesa' : 'Cadastrar Nova Despesa'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="description">Descrição *</Label>
             <Input
               id="description"
-              placeholder="Ex: Aluguel, Luz, Água..."
+              placeholder="Ex: Supermercado, Conta de luz..."
               value={formData.description}
-              onChange={(e) => handleFieldChange('description', e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="category">Categoria</Label>
-            <CategorySelector
-              categories={expenseCategories}
-              value={formData.category_id}
-              onValueChange={(value) => handleFieldChange('category_id', value)}
-              placeholder="Selecione uma categoria"
-              disabled={categoriesLoading}
+              onChange={(e) => onFormChange({ ...formData, description: e.target.value })}
             />
           </div>
           <div>
@@ -83,16 +61,16 @@ const CashExpenseForm = ({
               step="0.01"
               placeholder="0,00"
               value={formData.amount}
-              onChange={(e) => handleFieldChange('amount', e.target.value)}
+              onChange={(e) => onFormChange({ ...formData, amount: e.target.value })}
             />
           </div>
           <div>
-            <Label htmlFor="date">Data de Início *</Label>
+            <Label htmlFor="date">Data *</Label>
             <Input
               id="date"
               type="date"
               value={formData.date}
-              onChange={(e) => handleFieldChange('date', e.target.value)}
+              onChange={(e) => onFormChange({ ...formData, date: e.target.value })}
             />
           </div>
           <div>
@@ -101,8 +79,21 @@ const CashExpenseForm = ({
               id="due_date"
               type="date"
               value={formData.due_date}
-              onChange={(e) => handleFieldChange('due_date', e.target.value)}
+              onChange={(e) => onFormChange({ ...formData, due_date: e.target.value })}
             />
+          </div>
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            {categoriesLoading ? (
+              <div className="h-10 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              <CategorySelector
+                categories={expenseCategories}
+                value={formData.category_id}
+                onValueChange={(value) => onFormChange({ ...formData, category_id: value })}
+                placeholder="Selecione uma categoria"
+              />
+            )}
           </div>
         </div>
         
@@ -110,7 +101,7 @@ const CashExpenseForm = ({
           <Switch
             id="recurring"
             checked={formData.is_recurring}
-            onCheckedChange={(checked) => handleFieldChange('is_recurring', checked)}
+            onCheckedChange={(checked) => onFormChange({ ...formData, is_recurring: checked })}
           />
           <Label htmlFor="recurring">Despesa recorrente</Label>
         </div>
@@ -125,16 +116,23 @@ const CashExpenseForm = ({
               max="60"
               placeholder="Ex: 12"
               value={formData.recurrence_months}
-              onChange={(e) => handleFieldChange('recurrence_months', e.target.value)}
+              onChange={(e) => onFormChange({ ...formData, recurrence_months: e.target.value })}
             />
           </div>
         )}
         
         <div className="flex flex-col sm:flex-row justify-end gap-2">
-          <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={onCancel}
+            className="w-full sm:w-auto"
+          >
             Cancelar
           </Button>
-          <Button onClick={onSubmit} className="w-full sm:w-auto">
+          <Button 
+            onClick={handleSubmit}
+            className="w-full sm:w-auto"
+          >
             {isEditing ? 'Atualizar' : 'Cadastrar'} Despesa
           </Button>
         </div>

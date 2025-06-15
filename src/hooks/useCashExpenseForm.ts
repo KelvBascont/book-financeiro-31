@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-interface ExpenseFormData {
+export interface CashExpenseForm {
   description: string;
   amount: string;
   date: string;
@@ -17,7 +17,7 @@ export const useCashExpenseForm = () => {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   
-  const [expenseForm, setExpenseForm] = useState<ExpenseFormData>({
+  const [expenseForm, setExpenseForm] = useState<CashExpenseForm>({
     description: '',
     amount: '',
     date: '',
@@ -28,12 +28,12 @@ export const useCashExpenseForm = () => {
   });
 
   const resetForm = () => {
-    setExpenseForm({ 
-      description: '', 
-      amount: '', 
-      date: '', 
-      due_date: '', 
-      is_recurring: false, 
+    setExpenseForm({
+      description: '',
+      amount: '',
+      date: '',
+      due_date: '',
+      is_recurring: false,
       recurrence_months: '',
       category_id: ''
     });
@@ -41,7 +41,7 @@ export const useCashExpenseForm = () => {
     setEditingExpense(null);
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     if (!expenseForm.description || !expenseForm.amount || !expenseForm.date || !expenseForm.due_date) {
       toast({
         title: "Erro",
@@ -67,15 +67,17 @@ export const useCashExpenseForm = () => {
     setShowAddExpense(true);
   };
 
-  const getFormDataForSubmission = () => ({
-    description: expenseForm.description,
-    amount: parseFloat(expenseForm.amount),
-    date: expenseForm.date,
-    due_date: expenseForm.due_date,
-    is_recurring: expenseForm.is_recurring,
-    recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined,
-    category_id: expenseForm.category_id || undefined
-  });
+  const getFormDataForSubmission = () => {
+    return {
+      description: expenseForm.description,
+      amount: parseFloat(expenseForm.amount),
+      date: expenseForm.date,
+      due_date: expenseForm.due_date,
+      is_recurring: expenseForm.is_recurring,
+      recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined,
+      category_id: expenseForm.category_id || null
+    };
+  };
 
   return {
     showAddExpense,

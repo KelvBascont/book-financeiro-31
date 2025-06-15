@@ -17,6 +17,8 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
 import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
+import { useCategories } from '@/hooks/useCategories';
+import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +38,7 @@ const Income = () => {
   } = useSupabaseData();
 
   const { addOverride } = useOccurrenceOverrides();
+  const { incomeCategories, loading: categoriesLoading } = useCategories();
   
   const [incomeForm, setIncomeForm] = useState({
     description: '',
@@ -43,7 +46,8 @@ const Income = () => {
     date: '',
     type: 'salary' as 'salary' | 'bonus' | 'investment' | 'other',
     is_recurring: false,
-    recurrence_months: ''
+    recurrence_months: '',
+    category_id: ''
   });
 
   // Convert selectedMonth to the format used by the integrated hook
@@ -57,6 +61,7 @@ const Income = () => {
 
   const loading = supabaseLoading || integratedLoading;
 
+  // Helper function to generate months
   const generateMonths = () => {
     const months = [];
     const currentDate = new Date();
@@ -112,7 +117,8 @@ const Income = () => {
       date: incomeForm.date,
       type: incomeForm.type,
       is_recurring: incomeForm.is_recurring,
-      recurrence_months: incomeForm.is_recurring ? parseInt(incomeForm.recurrence_months) : undefined
+      recurrence_months: incomeForm.is_recurring ? parseInt(incomeForm.recurrence_months) : undefined,
+      category_id: incomeForm.category_id || null
     });
 
     if (result) {
@@ -122,7 +128,8 @@ const Income = () => {
         date: '', 
         type: 'salary', 
         is_recurring: false, 
-        recurrence_months: '' 
+        recurrence_months: '',
+        category_id: ''
       });
       setShowAddIncome(false);
     }
@@ -138,7 +145,8 @@ const Income = () => {
         date: income.date,
         type: income.type,
         is_recurring: income.is_recurring,
-        recurrence_months: income.recurrence_months?.toString() || ''
+        recurrence_months: income.recurrence_months?.toString() || '',
+        category_id: income.category_id || ''
       });
       setShowAddIncome(true);
     }
@@ -160,7 +168,8 @@ const Income = () => {
       date: incomeForm.date,
       type: incomeForm.type,
       is_recurring: incomeForm.is_recurring,
-      recurrence_months: incomeForm.is_recurring ? parseInt(incomeForm.recurrence_months) : undefined
+      recurrence_months: incomeForm.is_recurring ? parseInt(incomeForm.recurrence_months) : undefined,
+      category_id: incomeForm.category_id || null
     });
 
     if (result) {
@@ -170,7 +179,8 @@ const Income = () => {
         date: '', 
         type: 'salary', 
         is_recurring: false, 
-        recurrence_months: '' 
+        recurrence_months: '',
+        category_id: ''
       });
       setShowAddIncome(false);
       setEditingIncome(null);
@@ -216,6 +226,7 @@ const Income = () => {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h2>
@@ -303,6 +314,7 @@ const Income = () => {
         </Card>
       </div>
 
+      {/* Formulário de receitas */}
       {showAddIncome && (
         <Card>
           <CardHeader>
@@ -356,6 +368,19 @@ const Income = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="category">Categoria</Label>
+                {categoriesLoading ? (
+                  <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                ) : (
+                  <CategorySelector
+                    categories={incomeCategories}
+                    value={incomeForm.category_id}
+                    onValueChange={(value) => setIncomeForm({ ...incomeForm, category_id: value })}
+                    placeholder="Selecione uma categoria"
+                  />
+                )}
+              </div>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -394,7 +419,8 @@ const Income = () => {
                     date: '', 
                     type: 'salary', 
                     is_recurring: false, 
-                    recurrence_months: '' 
+                    recurrence_months: '',
+                    category_id: ''
                   });
                 }} 
                 className="w-full sm:w-auto"

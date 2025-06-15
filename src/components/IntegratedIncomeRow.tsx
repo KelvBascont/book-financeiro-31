@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash, Check, X } from 'lucide-react';
+import { Pencil, Trash, Check, X, Tag } from 'lucide-react';
 import { useFormatters } from '@/hooks/useFormatters';
+import { useCategories } from '@/hooks/useCategories';
 
 interface IntegratedIncomeRowProps {
   income: any;
@@ -20,6 +21,7 @@ const IntegratedIncomeRow = ({
   onEditIncome 
 }: IntegratedIncomeRowProps) => {
   const formatters = useFormatters();
+  const { categories } = useCategories();
   const [isEditing, setIsEditing] = useState(false);
   const [editAmount, setEditAmount] = useState(income.amount);
 
@@ -40,6 +42,25 @@ const IntegratedIncomeRow = ({
       return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Conta Recebida</Badge>;
     }
     return <Badge variant="outline">Receita</Badge>;
+  };
+
+  const getCategoryBadge = () => {
+    if (income.category_id) {
+      const category = categories.find(cat => cat.id === income.category_id);
+      if (category) {
+        return (
+          <Badge 
+            variant="secondary" 
+            style={{ backgroundColor: category.color + '20', color: category.color }}
+            className="text-xs"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            {category.name}
+          </Badge>
+        );
+      }
+    }
+    return null;
   };
 
   const getTypeLabel = (type: string) => {
@@ -67,7 +88,10 @@ const IntegratedIncomeRow = ({
       <td className="py-3 px-2">
         <div className="flex flex-col gap-1">
           <span className="font-medium">{income.description}</span>
-          {getSourceBadge()}
+          <div className="flex gap-1 flex-wrap">
+            {getSourceBadge()}
+            {getCategoryBadge()}
+          </div>
         </div>
       </td>
       <td className="py-3 px-2">
