@@ -96,25 +96,22 @@ const PeriodSelector = ({ onPeriodChange, onClearFilter, isActive }: PeriodSelec
 
   return (
     <Select value={selectedPeriod} onValueChange={handlePeriodSelect}>
-      <SelectTrigger asChild>
-        <Button 
-          variant={isActive ? "default" : "outline"} 
-          className={`
-            relative group transition-all duration-300 ease-in-out
-            ${isActive 
-              ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg' 
-              : 'hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600'
-            }
-            rounded-lg px-4 py-2.5 font-medium w-full sm:w-auto
-          `}
-        >
-          <Calendar className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
+      <SelectTrigger className={`
+        relative group transition-all duration-300 ease-in-out
+        ${isActive 
+          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg text-white border-blue-600' 
+          : 'hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600'
+        }
+        rounded-lg px-4 py-2.5 font-medium w-full sm:w-auto
+      `}>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 transition-transform group-hover:scale-110" />
           <span className="truncate max-w-40">{getDisplayText()}</span>
-          <ChevronDown className="h-4 w-4 ml-2 transition-transform duration-200" />
+          <ChevronDown className="h-4 w-4 transition-transform duration-200" />
           {isActive && (
             <div className="absolute -top-1 -right-1 h-3 w-3 bg-amber-400 rounded-full animate-pulse shadow-sm" />
           )}
-        </Button>
+        </div>
       </SelectTrigger>
       <SelectContent className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl">
         <SelectItem value="current" className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
