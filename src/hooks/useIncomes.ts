@@ -12,6 +12,7 @@ export interface Income {
   type: 'salary' | 'bonus' | 'investment' | 'other';
   is_recurring: boolean;
   recurrence_months?: number;
+  category_id?: string;
   user_id: string;
 }
 
