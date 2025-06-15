@@ -16,13 +16,15 @@ export const useIntegratedFinancialData = (selectedMonth: string) => {
   // Filtrar contas pagas do tipo payable (despesas)
   const paidPayableBills = useMemo(() => {
     return bills
-      .filter(bill => bill.type === 'payable' && bill.status === 'paid' && bill.paid_date)
+      .filter(bill => bill.type === 'payable' && bill.status === 'paid')
       .map(bill => ({
         id: bill.id,
         description: bill.title,
         amount: -(bill.paid_amount || bill.amount), // Negativo para despesas
-        date: bill.paid_date!,
+        // Usar a data de vencimento como referência principal para o mês
+        date: bill.due_date,
         due_date: bill.due_date,
+        paid_date: bill.paid_date,
         is_recurring: bill.is_recurring || false,
         recurrence_months: bill.recurrence_months,
         category_id: bill.category_id,
@@ -35,12 +37,15 @@ export const useIntegratedFinancialData = (selectedMonth: string) => {
   // Filtrar contas recebidas do tipo receivable (receitas)
   const paidReceivableBills = useMemo(() => {
     return bills
-      .filter(bill => bill.type === 'receivable' && bill.status === 'paid' && bill.paid_date)
+      .filter(bill => bill.type === 'receivable' && bill.status === 'paid')
       .map(bill => ({
         id: bill.id,
         description: bill.title,
         amount: bill.paid_amount || bill.amount, // Positivo para receitas
-        date: bill.paid_date!,
+        // Usar a data de vencimento como referência principal para o mês
+        date: bill.due_date,
+        due_date: bill.due_date,
+        paid_date: bill.paid_date,
         type: 'other' as const,
         is_recurring: bill.is_recurring || false,
         recurrence_months: bill.recurrence_months,
