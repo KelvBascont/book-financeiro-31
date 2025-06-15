@@ -35,7 +35,10 @@ const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
     onSubmit(formData);
   };
 
-  const expenseCategories = categories.filter(cat => cat.type === 'expense');
+  // Filter categories based on bill type
+  const filteredCategories = categories.filter(cat => 
+    formData.type === 'payable' ? cat.type === 'expense' : cat.type === 'income'
+  );
 
   return (
     <Card>
@@ -59,7 +62,11 @@ const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
               <Label htmlFor="type">Tipo</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value as 'payable' | 'receivable' })}
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  type: value as 'payable' | 'receivable',
+                  category_id: '' // Reset category when type changes
+                })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -104,7 +111,7 @@ const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
                   <SelectValue placeholder="Selecionar categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {expenseCategories.map((category) => (
+                  {filteredCategories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
