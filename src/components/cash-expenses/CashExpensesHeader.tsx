@@ -1,7 +1,7 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Calendar, ChevronDown } from 'lucide-react';
+import { PlusCircle, Calendar, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -103,7 +103,7 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
           </DropdownMenuContent>
         </DropdownMenu>
         <Button onClick={onAddExpense} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
+          <PlusCircle className="h-4 w-4 mr-2" />
           Nova Despesa
         </Button>
       </div>

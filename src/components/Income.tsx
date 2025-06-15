@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,14 @@ import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
 import BillForm from '@/components/bills/BillForm';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { Income } from '@/hooks/useIncomes';
 
 const Income = () => {
@@ -49,34 +58,37 @@ const Income = () => {
     category_id: ''
   });
 
-  // Generate month options (past and future)
-  const generateMonthOptions = () => {
-    const options = [];
-    const now = new Date();
-
-    // Add past months (24 months back)
-    for (let i = 24; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthValue = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-      const monthLabel = formatters.dateMonthYear(date).toLowerCase();
-      options.push({
-        value: monthValue,
-        label: monthLabel
-      });
+  // Generate month options for dropdown
+  const generateMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Gera 12 meses: 6 anteriores, atual e 5 posteriores
+    for (let i = -6; i <= 5; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push(date);
     }
-
-    // Add future months (12 months forward)
-    for (let i = 1; i <= 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const monthValue = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-      const monthLabel = formatters.dateMonthYear(date).toLowerCase();
-      options.push({
-        value: monthValue,
-        label: monthLabel
-      });
-    }
-    return options;
+    
+    return months;
   };
+
+  const months = generateMonths();
+
+  // Convert MM/yyyy to Date for dropdown
+  const getDateFromMonthString = (monthString: string) => {
+    const [month, year] = monthString.split('/');
+    return new Date(parseInt(year), parseInt(month) - 1, 1);
+  };
+
+  // Convert Date to MM/yyyy string
+  const getMonthStringFromDate = (date: Date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
+    return `${month}/${year}`;
+  };
+
+  // Get current month string for comparison
+  const currentMonthString = getMonthStringFromDate(new Date());
 
   const resetForm = () => {
     setIncomeForm({
@@ -160,11 +172,6 @@ const Income = () => {
     return value > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400';
   };
 
-  const getSelectedMonthLabel = () => {
-    const option = generateMonthOptions().find(opt => opt.value === selectedMonth);
-    return option ? option.label : 'Selecionar';
-  };
-
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -180,82 +187,60 @@ const Income = () => {
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h1>
-          <p className="text-gray-600 dark:text-gray-300">Gerencie suas receitas mensais</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Receitas</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas receitas mensais</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Styled Month Filter */}
-          <div className="relative">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="
-                w-full sm:w-52 h-11 px-4 py-2.5
-                bg-gradient-to-r from-blue-600 to-blue-700 
-                hover:from-blue-700 hover:to-blue-800 
-                border-blue-600 hover:border-blue-700
-                text-white font-medium
-                rounded-xl shadow-lg hover:shadow-xl
-                transition-all duration-300 ease-in-out
-                transform hover:scale-[1.02]
-                focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
-                dark:focus:ring-offset-gray-900
-              ">
-                <div className="flex items-center gap-3 w-full">
-                  <div className="p-1.5 bg-white/20 rounded-lg">
-                    <Calendar className="h-4 w-4" />
-                  </div>
-                  <div className="flex flex-col items-start min-w-0 flex-1">
-                    <span className="text-xs opacity-90 font-normal">Período</span>
-                    <span className="text-sm font-semibold truncate">
-                      {getSelectedMonthLabel()}
-                    </span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 opacity-80" />
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="min-w-[110px] justify-between bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-500 shadow-md px-3 py-1.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
+                    {format(getDateFromMonthString(selectedMonth), 'MMM/yyyy', { locale: ptBR })}
+                  </span>
                 </div>
-              </SelectTrigger>
-              <SelectContent className="
-                w-52 max-h-64 
-                bg-white dark:bg-gray-800 
-                border border-gray-200 dark:border-gray-700 
-                shadow-2xl rounded-xl
-                backdrop-blur-sm
-              ">
-                {generateMonthOptions().map(option => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="
-                      cursor-pointer px-3 py-2.5 mx-1 my-0.5 rounded-lg
-                      hover:bg-blue-50 dark:hover:bg-gray-700 
-                      focus:bg-blue-100 dark:focus:bg-gray-600
-                      transition-colors duration-150
-                      text-gray-700 dark:text-gray-200
-                      font-medium
-                    "
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+            >
+              {months.map((month) => {
+                const monthString = getMonthStringFromDate(month);
+                const isSelected = monthString === selectedMonth;
+                const isCurrent = monthString === currentMonthString;
+                
+                return (
+                  <DropdownMenuItem
+                    key={format(month, 'yyyy-MM')}
+                    onClick={() => setSelectedMonth(monthString)}
+                    className={`
+                      cursor-pointer flex items-center justify-between px-3 py-2
+                      ${isSelected 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }
+                    `}
                   >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      <span className="capitalize">{option.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <Button 
-            onClick={handleAddIncomeClick} 
-            className="
-              w-full sm:w-auto h-11 px-6
-              bg-gradient-to-r from-green-600 to-green-700 
-              hover:from-green-700 hover:to-green-800
-              text-white font-medium rounded-xl
-              shadow-lg hover:shadow-xl
-              transition-all duration-300 ease-in-out
-              transform hover:scale-[1.02]
-            "
-          >
+                    <span>{format(month, 'MMM/yyyy', { locale: ptBR })}</span>
+                    {isCurrent && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={handleAddIncomeClick} className="w-full sm:w-auto">
             <PlusCircle className="h-4 w-4 mr-2" />
             Nova Receita
           </Button>
