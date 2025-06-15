@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -92,8 +91,9 @@ const Income = () => {
     }
   };
 
-  const handleEditIncome = (income: Income) => {
-    if (income.source === 'income') {
+  const handleEditIncome = (income: any) => {
+    // Check if this is a base income record (not a recurring occurrence)
+    if (!income.isRecurringOccurrence) {
       setEditingIncome(income);
       setIncomeForm({
         description: income.description,

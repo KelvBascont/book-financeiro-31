@@ -1,6 +1,7 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useSupabaseData, CashExpense, Income } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import type { CashExpense } from '@/hooks/useCashExpenses';
+import type { Income } from '@/hooks/useIncomes';
 
 interface FinancialContextType {
   cashExpenses: CashExpense[];

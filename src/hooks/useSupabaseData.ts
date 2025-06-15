@@ -25,7 +25,7 @@ export const useSupabaseData = () => {
   const {
     bills,
     loading: billsLoading,
-    addBill,
+    createBill,
     updateBill,
     deleteBill,
     refreshBills
@@ -50,7 +50,7 @@ export const useSupabaseData = () => {
 
     // Bills
     bills,
-    addBill,
+    addBill: createBill,
     updateBill,
     deleteBill,
     refreshBills,
