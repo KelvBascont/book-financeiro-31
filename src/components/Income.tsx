@@ -12,7 +12,6 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
-import DateRangeFilter from '@/components/DateRangeFilter';
 import type { Income } from '@/hooks/useIncomes';
 
 const Income = () => {
@@ -21,7 +20,6 @@ const Income = () => {
   const { incomeCategories, loading: categoriesLoading } = useCategories();
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [dateRangeFilter, setDateRangeFilter] = useState<{ start: string; end: string } | null>(null);
   
   const {
     loading,
@@ -44,20 +42,6 @@ const Income = () => {
     recurrence_months: '',
     category_id: ''
   });
-
-  // Apply date range filter if active
-  const displayedIncomes = dateRangeFilter 
-    ? filteredIncomes.filter(income => {
-        const incomeDate = new Date(income.date);
-        const startDate = new Date(dateRangeFilter.start + '-01');
-        const endDate = new Date(dateRangeFilter.end + '-01');
-        endDate.setMonth(endDate.getMonth() + 1); // Include the entire end month
-        return incomeDate >= startDate && incomeDate < endDate;
-      })
-    : filteredIncomes;
-
-  // Calculate total for displayed incomes
-  const displayedTotal = displayedIncomes.reduce((sum, income) => sum + income.amount, 0);
 
   const resetForm = () => {
     setIncomeForm({
@@ -134,14 +118,6 @@ const Income = () => {
     return value > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400';
   };
 
-  const handleDateRangeFilter = (startMonth: string, endMonth: string) => {
-    setDateRangeFilter({ start: startMonth, end: endMonth });
-  };
-
-  const handleClearDateRangeFilter = () => {
-    setDateRangeFilter(null);
-  };
-
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -163,11 +139,6 @@ const Income = () => {
           <p className="text-gray-600 dark:text-gray-300">Gerencie suas receitas mensais</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <DateRangeFilter
-            onFilterChange={handleDateRangeFilter}
-            onClearFilter={handleClearDateRangeFilter}
-            isActive={!!dateRangeFilter}
-          />
           <Input
             type="month"
             value={selectedMonth.split('/').reverse().join('-')}
@@ -193,11 +164,9 @@ const Income = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {dateRangeFilter ? 'Total do Período' : 'Total do Mês'}
-                </p>
-                <p className={`text-2xl font-bold ${getTotalColorClass(displayedTotal)}`}>
-                  {formatters.currency(displayedTotal)}
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
+                <p className={`text-2xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+                  {formatters.currency(monthlyTotal)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
@@ -211,7 +180,7 @@ const Income = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Qtd. Receitas</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {displayedIncomes.length}
+                  {filteredIncomes.length}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -343,28 +312,20 @@ const Income = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              {dateRangeFilter 
-                ? `Receitas - ${dateRangeFilter.start} a ${dateRangeFilter.end}`
-                : `Receitas - ${formatMonthDisplay(selectedMonth)}`
-              }
+              Receitas - {formatMonthDisplay(selectedMonth)}
             </CardTitle>
             <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {dateRangeFilter ? 'Total do Período' : 'Total do Mês'}
-              </p>
-              <p className={`text-xl font-bold ${getTotalColorClass(displayedTotal)}`}>
-                {formatters.currency(displayedTotal)}
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
+              <p className={`text-xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+                {formatters.currency(monthlyTotal)}
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {displayedIncomes.length === 0 ? (
+          {filteredIncomes.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {dateRangeFilter 
-                ? `Nenhuma receita encontrada para o período selecionado`
-                : `Nenhuma receita encontrada para ${formatMonthDisplay(selectedMonth)}`
-              }
+              Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -379,7 +340,7 @@ const Income = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedIncomes.map((income) => (
+                  {filteredIncomes.map((income) => (
                     <IntegratedIncomeRow
                       key={`${income.id}-${income.occurrenceIndex || 0}`}
                       income={income}
