@@ -9,6 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bills: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          is_recurring: boolean | null
+          paid_amount: number | null
+          paid_date: string | null
+          recurrence_months: number | null
+          reminder_days: number | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_recurring?: boolean | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          recurrence_months?: number | null
+          reminder_days?: number | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_recurring?: boolean | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          recurrence_months?: number | null
+          reminder_days?: number | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_alerts: {
         Row: {
           alert_threshold: number
@@ -338,6 +403,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          reference_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          reference_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          reference_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       occurrence_overrides: {
         Row: {
           amount: number
@@ -593,7 +691,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_bill_reminders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_overdue_bills: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

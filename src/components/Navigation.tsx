@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Receipt, TrendingUp, CreditCard, LineChart, PiggyBank, Car, FileSpreadsheet, Tag, Target } from 'lucide-react';
+import { Home, Receipt, TrendingUp, CreditCard, LineChart, PiggyBank, Car, FileSpreadsheet, Tag, Target, DollarSign } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface NavItemProps {
@@ -19,6 +19,7 @@ const Navigation = () => {
     { name: 'Despesas Correntes', href: '/cash-expenses', icon: Receipt },
     { name: 'Receitas', href: '/income', icon: TrendingUp },
     { name: 'Cartões', href: '/cards', icon: CreditCard },
+    { name: 'Contas', href: '/bills', icon: DollarSign },
     { name: 'Categorias', href: '/categories', icon: Tag },
     { name: 'Orçamentos', href: '/budgets', icon: Target },
     { name: 'Investimentos', href: '/investments', icon: LineChart },

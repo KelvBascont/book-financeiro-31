@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -18,6 +19,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FinancialProvider } from '@/contexts/FinancialContext';
 import Categories from '@/components/Categories';
 import MonthlyBudgets from '@/components/MonthlyBudgets';
+import Bills from '@/components/Bills';
 
 const queryClient = new QueryClient();
 
@@ -87,6 +89,16 @@ function App() {
                         <Navigation />
                         <main className="flex-1 overflow-auto">
                           <MonthlyBudgets />
+                        </main>
+                      </div>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/bills" element={
+                    <ProtectedRoute>
+                      <div className="flex h-screen">
+                        <Navigation />
+                        <main className="flex-1 overflow-auto">
+                          <Bills />
                         </main>
                       </div>
                     </ProtectedRoute>
