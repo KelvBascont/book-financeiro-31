@@ -1,9 +1,7 @@
-
 import { useState } from 'react';
 import { useIncomeOperationsIntegrated } from '@/hooks/useIncomeOperationsIntegrated';
 import { useBills } from '@/hooks/useBills';
 import { useToast } from '@/hooks/use-toast';
-import { useIncomeOperationsIntegrated } from '@/hooks/useIncomeOperationsIntegrated';
 import BillForm from '@/components/bills/BillForm';
 import IncomeHeader from '@/components/income/IncomeHeader';
 import IncomeSummary from '@/components/income/IncomeSummary';
