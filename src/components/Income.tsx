@@ -15,9 +15,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
 import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
-import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
-import EditableIncomeRow from '@/components/EditableIncomeRow';
+import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -29,14 +29,13 @@ const Income = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
   const {
-    incomes,
     addIncome,
     updateIncome,
     deleteIncome,
-    loading
+    loading: supabaseLoading
   } = useSupabaseData();
 
-  const { addOverride, applyOverridesToTransactions } = useOccurrenceOverrides();
+  const { addOverride } = useOccurrenceOverrides();
   
   const [incomeForm, setIncomeForm] = useState({
     description: '',
@@ -47,7 +46,16 @@ const Income = () => {
     recurrence_months: ''
   });
 
-  const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
+  // Convert selectedMonth to the format used by the integrated hook
+  const selectedMonthString = `${(selectedMonth.getMonth() + 1).toString().padStart(2, '0')}/${selectedMonth.getFullYear()}`;
+  
+  const {
+    loading: integratedLoading,
+    integratedIncomes,
+    incomesTotal
+  } = useIntegratedFinancialData(selectedMonthString);
+
+  const loading = supabaseLoading || integratedLoading;
 
   const generateMonths = () => {
     const months = [];
@@ -74,7 +82,7 @@ const Income = () => {
   const handleUpdateOccurrence = async (id: string, occurrenceIndex: number, newAmount: number) => {
     try {
       // Calcular a data da ocorrência baseada no índice
-      const originalIncome = incomes.find(income => income.id === id);
+      const originalIncome = integratedIncomes.find(income => income.id === id && income.source === 'income');
       if (!originalIncome) return;
 
       const originalDate = new Date(originalIncome.date);
@@ -121,16 +129,19 @@ const Income = () => {
   };
 
   const handleEditIncome = (income: any) => {
-    setEditingIncome(income);
-    setIncomeForm({
-      description: income.description,
-      amount: income.amount.toString(),
-      date: income.date,
-      type: income.type,
-      is_recurring: income.is_recurring,
-      recurrence_months: income.recurrence_months?.toString() || ''
-    });
-    setShowAddIncome(true);
+    // Só permitir edição de incomes, não bills
+    if (income.source === 'income') {
+      setEditingIncome(income);
+      setIncomeForm({
+        description: income.description,
+        amount: income.amount.toString(),
+        date: income.date,
+        type: income.type,
+        is_recurring: income.is_recurring,
+        recurrence_months: income.recurrence_months?.toString() || ''
+      });
+      setShowAddIncome(true);
+    }
   };
 
   const handleUpdateIncome = async () => {
@@ -203,12 +214,6 @@ const Income = () => {
     );
   }
 
-  // Convert selectedMonth to the format used by the filter functions
-  const selectedMonthString = `${(selectedMonth.getMonth() + 1).toString().padStart(2, '0')}/${selectedMonth.getFullYear()}`;
-  const filteredIncomes = filterByReferenceMonth(incomes, selectedMonthString);
-  const filteredIncomesWithOverrides = applyOverridesToTransactions(filteredIncomes);
-  const monthlyTotal = calculateTotalForMonth(incomes, selectedMonthString);
-
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -270,7 +275,7 @@ const Income = () => {
         </div>
       </div>
 
-      {/* Resumo das receitas */}
+      {/* Resumo das receitas - atualizado com dados integrados */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -278,7 +283,7 @@ const Income = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatters.currency(monthlyTotal)}
+                  {formatters.currency(incomesTotal)}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -290,7 +295,7 @@ const Income = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Receitas do Mês</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredIncomesWithOverrides.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{integratedIncomes.length}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
             </div>
@@ -407,6 +412,7 @@ const Income = () => {
         </Card>
       )}
 
+      {/* Tabela integrada de receitas */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -417,13 +423,13 @@ const Income = () => {
             <div className="text-right">
               <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
               <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatters.currency(monthlyTotal)}
+                {formatters.currency(incomesTotal)}
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {filteredIncomesWithOverrides.length === 0 ? (
+          {integratedIncomes.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Nenhuma receita encontrada para {format(selectedMonth, 'MMM/yyyy', { locale: ptBR })}
             </div>
@@ -440,12 +446,13 @@ const Income = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIncomesWithOverrides.map((income) => (
-                    <EditableIncomeRow
-                      key={`${income.id}-${income.occurrenceIndex || 0}`}
+                  {integratedIncomes.map((income) => (
+                    <IntegratedIncomeRow
+                      key={`${income.source}-${income.id}-${income.occurrenceIndex || 0}`}
                       income={income}
                       onUpdateOccurrence={handleUpdateOccurrence}
                       onDeleteIncome={handleDeleteIncome}
+                      onEditIncome={handleEditIncome}
                     />
                   ))}
                 </tbody>

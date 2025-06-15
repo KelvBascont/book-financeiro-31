@@ -1,11 +1,11 @@
 
 import { useState } from 'react';
 import { useCashExpenseForm } from '@/hooks/useCashExpenseForm';
-import { useCashExpenseOperations } from '@/hooks/useCashExpenseOperations';
+import { useCashExpenseOperationsIntegrated } from '@/hooks/useCashExpenseOperationsIntegrated';
 import CashExpensesHeader from '@/components/cash-expenses/CashExpensesHeader';
 import CashExpensesSummary from '@/components/cash-expenses/CashExpensesSummary';
 import CashExpenseForm from '@/components/cash-expenses/CashExpenseForm';
-import CashExpensesTable from '@/components/cash-expenses/CashExpensesTable';
+import IntegratedExpensesTable from '@/components/IntegratedExpensesTable';
 
 const CashExpenses = () => {
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
@@ -31,7 +31,7 @@ const CashExpenses = () => {
     handleUpdateExpense,
     handleDeleteExpense,
     handleUpdateOccurrence
-  } = useCashExpenseOperations(selectedMonth);
+  } = useCashExpenseOperationsIntegrated(selectedMonth);
 
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
@@ -48,7 +48,10 @@ const CashExpenses = () => {
   };
 
   const handleEditExpense = (expense: any) => {
-    setEditingData(expense);
+    // Só permitir edição de cash_expenses, não bills
+    if (expense.source === 'cash_expense') {
+      setEditingData(expense);
+    }
   };
 
   if (loading) {
@@ -85,7 +88,7 @@ const CashExpenses = () => {
         onCancel={resetForm}
       />
 
-      <CashExpensesTable
+      <IntegratedExpensesTable
         expenses={filteredExpenses}
         monthlyTotal={monthlyTotal}
         selectedMonth={selectedMonth}
