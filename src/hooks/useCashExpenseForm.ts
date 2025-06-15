@@ -6,7 +6,6 @@ export interface CashExpenseForm {
   description: string;
   amount: string;
   date: string;
-  due_date: string;
   is_recurring: boolean;
   recurrence_months: string;
   category_id: string;
@@ -21,7 +20,6 @@ export const useCashExpenseForm = () => {
     description: '',
     amount: '',
     date: '',
-    due_date: '',
     is_recurring: false,
     recurrence_months: '',
     category_id: ''
@@ -32,7 +30,6 @@ export const useCashExpenseForm = () => {
       description: '',
       amount: '',
       date: '',
-      due_date: '',
       is_recurring: false,
       recurrence_months: '',
       category_id: ''
@@ -42,7 +39,7 @@ export const useCashExpenseForm = () => {
   };
 
   const validateForm = () => {
-    if (!expenseForm.description || !expenseForm.amount || !expenseForm.date || !expenseForm.due_date) {
+    if (!expenseForm.description || !expenseForm.amount || !expenseForm.date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -59,7 +56,6 @@ export const useCashExpenseForm = () => {
       description: expense.description,
       amount: expense.amount.toString(),
       date: expense.date,
-      due_date: expense.due_date,
       is_recurring: expense.is_recurring,
       recurrence_months: expense.recurrence_months?.toString() || '',
       category_id: expense.category_id || ''
@@ -72,7 +68,7 @@ export const useCashExpenseForm = () => {
       description: expenseForm.description,
       amount: parseFloat(expenseForm.amount),
       date: expenseForm.date,
-      due_date: expenseForm.due_date,
+      due_date: expenseForm.date, // Use the same date for due_date to maintain database compatibility
       is_recurring: expenseForm.is_recurring,
       recurrence_months: expenseForm.is_recurring ? parseInt(expenseForm.recurrence_months) : undefined,
       category_id: expenseForm.category_id || null

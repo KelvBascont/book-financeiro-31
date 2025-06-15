@@ -43,7 +43,7 @@ const CashExpenseForm = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label htmlFor="description">Descrição *</Label>
             <Input
@@ -71,15 +71,6 @@ const CashExpenseForm = ({
               type="date"
               value={formData.date}
               onChange={(e) => onFormChange({ ...formData, date: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="due_date">Data de Vencimento *</Label>
-            <Input
-              id="due_date"
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => onFormChange({ ...formData, due_date: e.target.value })}
             />
           </div>
           <div>
