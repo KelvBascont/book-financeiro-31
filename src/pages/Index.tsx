@@ -64,7 +64,7 @@ const Index = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation currentView={currentView} onViewChange={setCurrentView} />
+        <Navigation />
         
         {/* Main content */}
         <div className="md:pl-64">
