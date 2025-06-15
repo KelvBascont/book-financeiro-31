@@ -36,9 +36,20 @@ export const useBills = () => {
 
   const createBill = async (billData: Omit<BillInsert, 'user_id'>) => {
     try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const billWithUserId = {
+        ...billData,
+        user_id: user.id,
+      };
+
       const { data, error } = await supabase
         .from('bills')
-        .insert([billData])
+        .insert([billWithUserId])
         .select()
         .single();
 
