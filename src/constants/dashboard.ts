@@ -30,6 +30,6 @@ export const DASHBOARD_CONSTANTS = {
 
 export const CHART_LABELS = {
   income: 'Receitas',
-  expenses: 'Despesas em Dinheiro',
-  cardExpenses: 'Despesas de Cartão'
+  expenses: 'Despesas',
+  cardExpenses: 'Cartão de Crédito'
 } as const;
