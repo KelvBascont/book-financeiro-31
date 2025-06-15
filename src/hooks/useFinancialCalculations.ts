@@ -1,57 +1,46 @@
 
 import { useMemo } from 'react';
-import { format, addMonths } from 'date-fns';
-import { useSupabaseData } from './useSupabaseData';
-import { useCardExpenses } from './useCardExpenses';
-import { useRecurrenceFilter } from './useRecurrenceFilter';
-
-export interface FinancialSummary {
-  totalIncome: number;
-  totalExpenses: number;
-  currentMonthCardExpenses: number;
-  currentBalance: number;
-}
+import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
+import { useCardExpenses } from '@/hooks/useCardExpenses';
+import { format } from 'date-fns';
 
 export const useFinancialCalculations = (selectedMonth: Date) => {
-  const { cashExpenses, incomes } = useSupabaseData();
+  const monthString = format(selectedMonth, 'MM/yyyy');
   const { cardExpenses } = useCardExpenses();
-  const { calculateTotalForMonth } = useRecurrenceFilter();
+  
+  // Use integrated financial data that includes bills
+  const {
+    expensesTotal: integratedExpensesTotal,
+    incomesTotal: integratedIncomesTotal,
+    loading
+  } = useIntegratedFinancialData(monthString);
 
-  const financialSummary = useMemo((): FinancialSummary => {
-    const monthString = format(selectedMonth, 'MM/yyyy');
-    
-    // Use recurring logic for incomes and cash expenses
-    const totalIncomes = calculateTotalForMonth(incomes, monthString);
-    const totalCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
-    
-    // Calculate card expenses for selected month using real data
-    // Os gastos do cartão aparecem +1 mês após o mês de cobrança
-    const previousMonth = addMonths(selectedMonth, -1);
-    const previousMonthString = format(previousMonth, 'MM/yyyy');
-    
-    const totalCardExpenses = cardExpenses
+  const financialSummary = useMemo(() => {
+    // Calculate card expenses for the selected month
+    const currentMonthCardExpenses = cardExpenses
       .filter(expense => {
-        const expenseMonth = format(new Date(expense.billing_month), 'MM/yyyy');
-        return expenseMonth === previousMonthString;
+        const billingMonth = format(new Date(expense.billing_month), 'MM/yyyy');
+        return billingMonth === monthString;
       })
       .reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Use integrated totals (already include bills)
+    const totalIncome = integratedIncomesTotal;
+    const totalExpenses = Math.abs(integratedExpensesTotal); // Convert to positive
     
-    const currentBalance = totalIncomes - totalCashExpenses - totalCardExpenses;
-    
+    // Calculate current balance including all sources
+    const currentBalance = totalIncome - totalExpenses - currentMonthCardExpenses;
+
     return {
-      totalIncome: totalIncomes,
-      totalExpenses: totalCashExpenses,
-      currentMonthCardExpenses: totalCardExpenses,
+      totalIncome,
+      totalExpenses,
+      currentMonthCardExpenses,
       currentBalance
     };
-  }, [selectedMonth, incomes, cashExpenses, cardExpenses, calculateTotalForMonth]);
+  }, [integratedIncomesTotal, integratedExpensesTotal, cardExpenses, monthString]);
 
   return {
     financialSummary,
-    rawData: {
-      cashExpenses,
-      incomes,
-      cardExpenses
-    }
+    loading
   };
 };

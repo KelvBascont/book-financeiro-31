@@ -1,14 +1,11 @@
 
 import { useMemo } from 'react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
-import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from 'date-fns';
 
 export const useDashboardData = () => {
-  const { cashExpenses, incomes, loading } = useSupabaseData();
   const { cardExpenses } = useCardExpenses();
-  const { filterByReferenceMonth, calculateTotalForMonth } = useRecurrenceFilter();
 
   const monthlyData = useMemo(() => {
     const today = new Date();
@@ -19,11 +16,11 @@ export const useDashboardData = () => {
     
     return months.map(month => {
       const monthString = format(month, 'MM/yyyy');
-      const monthlyIncomes = calculateTotalForMonth(incomes, monthString);
-      const monthlyCashExpenses = calculateTotalForMonth(cashExpenses, monthString);
+      
+      // Use integrated data for each month
+      const { expensesTotal, incomesTotal } = useIntegratedFinancialData(monthString);
       
       // Calculate card expenses for the billing month
-      // Card expenses appear in the billing_month, so we need to filter by that
       const monthlyCardExpenses = cardExpenses
         .filter(expense => {
           const billingMonth = format(new Date(expense.billing_month), 'MM/yyyy');
@@ -33,22 +30,19 @@ export const useDashboardData = () => {
       
       return {
         month: format(month, 'MMM yyyy'),
-        income: monthlyIncomes,
-        expenses: monthlyCashExpenses,
+        income: incomesTotal,
+        expenses: Math.abs(expensesTotal), // Convert to positive for chart display
         cardExpenses: monthlyCardExpenses
       };
     });
-  }, [cashExpenses, incomes, cardExpenses, calculateTotalForMonth]);
+  }, [cardExpenses]);
 
-  const totalIncome = useMemo(() => {
-    const currentMonth = format(new Date(), 'MM/yyyy');
-    return calculateTotalForMonth(incomes, currentMonth);
-  }, [incomes, calculateTotalForMonth]);
+  // Get current month data
+  const currentMonth = format(new Date(), 'MM/yyyy');
+  const { expensesTotal, incomesTotal, loading } = useIntegratedFinancialData(currentMonth);
 
-  const totalExpenses = useMemo(() => {
-    const currentMonth = format(new Date(), 'MM/yyyy');
-    return calculateTotalForMonth(cashExpenses, currentMonth);
-  }, [cashExpenses, calculateTotalForMonth]);
+  const totalIncome = incomesTotal;
+  const totalExpenses = Math.abs(expensesTotal);
 
   return {
     monthlyData,
