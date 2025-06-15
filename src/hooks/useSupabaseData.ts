@@ -1,21 +1,60 @@
 
-import { useCashExpenses } from './useCashExpenses';
-import { useIncomes } from './useIncomes';
-
-export { type CashExpense } from './useCashExpenses';
-export { type Income } from './useIncomes';
+import { useCashExpenses } from '@/hooks/useCashExpenses';
+import { useIncomes } from '@/hooks/useIncomes';
+import { useBills } from '@/hooks/useBills';
 
 export const useSupabaseData = () => {
-  const cashExpensesHook = useCashExpenses();
-  const incomesHook = useIncomes();
+  const {
+    cashExpenses,
+    loading: cashExpensesLoading,
+    addCashExpense,
+    updateCashExpense,
+    deleteCashExpense,
+    refreshCashExpenses
+  } = useCashExpenses();
+
+  const {
+    incomes,
+    loading: incomesLoading,
+    addIncome,
+    updateIncome,
+    deleteIncome,
+    refreshIncomes
+  } = useIncomes();
+
+  const {
+    bills,
+    loading: billsLoading,
+    addBill,
+    updateBill,
+    deleteBill,
+    refreshBills
+  } = useBills();
+
+  const loading = cashExpensesLoading || incomesLoading || billsLoading;
 
   return {
-    ...cashExpensesHook,
-    ...incomesHook,
-    loading: cashExpensesHook.loading || incomesHook.loading,
-    refreshData: () => Promise.all([
-      cashExpensesHook.refreshCashExpenses(),
-      incomesHook.refreshIncomes()
-    ])
+    // Cash Expenses
+    cashExpenses,
+    addCashExpense,
+    updateCashExpense,
+    deleteCashExpense,
+    refreshCashExpenses,
+
+    // Incomes
+    incomes,
+    addIncome,
+    updateIncome,
+    deleteIncome,
+    refreshIncomes,
+
+    // Bills
+    bills,
+    addBill,
+    updateBill,
+    deleteBill,
+    refreshBills,
+
+    loading
   };
 };

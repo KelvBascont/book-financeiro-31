@@ -3,13 +3,13 @@ import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useOccurrenceOverrides } from '@/hooks/useOccurrenceOverrides';
 
-export const useCashExpenseOperationsIntegrated = (selectedMonth: string) => {
+export const useIncomeOperationsIntegrated = (selectedMonth: string) => {
   const {
-    addCashExpense,
-    updateCashExpense,
-    deleteCashExpense,
+    addIncome,
+    updateIncome,
+    deleteIncome,
     loading: supabaseLoading,
-    refreshCashExpenses
+    refreshIncomes
   } = useSupabaseData();
 
   const { 
@@ -19,35 +19,35 @@ export const useCashExpenseOperationsIntegrated = (selectedMonth: string) => {
 
   const {
     loading: integratedLoading,
-    integratedExpenses,
-    expensesTotal
+    integratedIncomes,
+    incomesTotal
   } = useIntegratedFinancialData(selectedMonth);
 
   const loading = supabaseLoading || integratedLoading;
 
-  const handleAddExpense = async (formData: any) => {
-    const result = await addCashExpense(formData);
+  const handleAddIncome = async (formData: any) => {
+    const result = await addIncome(formData);
     if (result) {
-      await refreshCashExpenses();
+      await refreshIncomes();
     }
     return result;
   };
 
-  const handleUpdateExpense = async (expenseId: string, formData: any) => {
-    const result = await updateCashExpense(expenseId, formData);
+  const handleUpdateIncome = async (incomeId: string, formData: any) => {
+    const result = await updateIncome(incomeId, formData);
     if (result) {
-      await refreshCashExpenses();
+      await refreshIncomes();
     }
     return result;
   };
 
-  const handleDeleteExpense = async (id: string) => {
-    await deleteCashExpense(id);
-    await refreshCashExpenses();
+  const handleDeleteIncome = async (id: string) => {
+    await deleteIncome(id);
+    await refreshIncomes();
   };
 
   const handleUpdateOccurrence = async (transactionId: string, occurrenceIndex: number, newAmount: number) => {
-    const transaction = integratedExpenses.find(t => t.id === transactionId && t.source === 'cash_expense');
+    const transaction = integratedIncomes.find(t => t.id === transactionId && t.source === 'income');
     if (!transaction) return;
 
     // Calcular a data da ocorrência
@@ -57,28 +57,28 @@ export const useCashExpenseOperationsIntegrated = (selectedMonth: string) => {
     await addOverride(transactionId, occurrenceIndex, newAmount, occurrenceDate.toISOString().split('T')[0]);
   };
 
-  // Apply overrides to filtered expenses
-  const expensesWithOverrides = integratedExpenses.map(expense => {
-    if (expense.source === 'cash_expense' && expense.isRecurringOccurrence && expense.occurrenceIndex !== undefined) {
-      const override = getOverrideForOccurrence(expense.id, expense.occurrenceIndex);
+  // Apply overrides to filtered incomes
+  const incomesWithOverrides = integratedIncomes.map(income => {
+    if (income.source === 'income' && income.isRecurringOccurrence && income.occurrenceIndex !== undefined) {
+      const override = getOverrideForOccurrence(income.id, income.occurrenceIndex);
       if (override) {
         return {
-          ...expense,
+          ...income,
           amount: override.amount,
           isModified: true
         };
       }
     }
-    return expense;
+    return income;
   });
 
   return {
     loading,
-    filteredExpenses: expensesWithOverrides,
-    monthlyTotal: expensesTotal,
-    handleAddExpense,
-    handleUpdateExpense,
-    handleDeleteExpense,
+    filteredIncomes: incomesWithOverrides,
+    monthlyTotal: incomesTotal,
+    handleAddIncome,
+    handleUpdateIncome,
+    handleDeleteIncome,
     handleUpdateOccurrence
   };
 };
