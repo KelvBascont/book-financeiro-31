@@ -9,25 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import DateRangeFilter from '@/components/DateRangeFilter';
 
 interface CashExpensesHeaderProps {
   selectedMonth: string;
   onMonthChange: (month: string) => void;
   onAddExpense: () => void;
-  dateRangeFilter?: { start: string; end: string } | null;
-  onDateRangeFilter?: (startMonth: string, endMonth: string) => void;
-  onClearDateRangeFilter?: () => void;
 }
 
-const CashExpensesHeader = ({ 
-  selectedMonth, 
-  onMonthChange, 
-  onAddExpense,
-  dateRangeFilter,
-  onDateRangeFilter,
-  onClearDateRangeFilter
-}: CashExpensesHeaderProps) => {
+const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: CashExpensesHeaderProps) => {
   const generateMonths = () => {
     const months = [];
     const currentDate = new Date();
@@ -66,14 +55,6 @@ const CashExpensesHeader = ({
         <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas despesas mensais</p>
       </div>
       <div className="flex items-center gap-4">
-        {onDateRangeFilter && onClearDateRangeFilter && (
-          <DateRangeFilter
-            onFilterChange={onDateRangeFilter}
-            onClearFilter={onClearDateRangeFilter}
-            isActive={!!dateRangeFilter}
-          />
-        )}
-        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
