@@ -2,14 +2,17 @@
 import { useState } from 'react';
 import { useCashExpenseForm } from '@/hooks/useCashExpenseForm';
 import { useCashExpenseOperationsIntegrated } from '@/hooks/useCashExpenseOperationsIntegrated';
+import { useBills } from '@/hooks/useBills';
 import CashExpensesHeader from '@/components/cash-expenses/CashExpensesHeader';
 import CashExpensesSummary from '@/components/cash-expenses/CashExpensesSummary';
 import CashExpenseForm from '@/components/cash-expenses/CashExpenseForm';
+import BillForm from '@/components/bills/BillForm';
 import IntegratedExpensesTable from '@/components/IntegratedExpensesTable';
 
 const CashExpenses = () => {
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [showBillForm, setShowBillForm] = useState(false);
   
   const {
     showAddExpense,
@@ -33,6 +36,8 @@ const CashExpenses = () => {
     handleUpdateOccurrence
   } = useCashExpenseOperationsIntegrated(selectedMonth);
 
+  const { createBill } = useBills();
+
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
     
@@ -54,6 +59,19 @@ const CashExpenses = () => {
     }
   };
 
+  const handleBillSubmit = async (billData: any) => {
+    try {
+      await createBill(billData);
+      setShowBillForm(false);
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
+    }
+  };
+
+  const handleAddExpenseClick = () => {
+    setShowBillForm(true);
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -71,7 +89,7 @@ const CashExpenses = () => {
       <CashExpensesHeader
         selectedMonth={selectedMonth}
         onMonthChange={setSelectedMonth}
-        onAddExpense={() => setShowAddExpense(!showAddExpense)}
+        onAddExpense={handleAddExpenseClick}
       />
 
       <CashExpensesSummary
@@ -87,6 +105,15 @@ const CashExpenses = () => {
         onSubmit={handleFormSubmit}
         onCancel={resetForm}
       />
+
+      {showBillForm && (
+        <BillForm
+          onSubmit={handleBillSubmit}
+          onCancel={() => setShowBillForm(false)}
+          initialType="payable"
+          typeDisabled={true}
+        />
+      )}
 
       <IntegratedExpensesTable
         expenses={filteredExpenses}

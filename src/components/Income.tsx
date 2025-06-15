@@ -7,11 +7,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, TrendingUp, Calendar, ChevronDown } from 'lucide-react';
 import { useIncomeOperationsIntegrated } from '@/hooks/useIncomeOperationsIntegrated';
+import { useBills } from '@/hooks/useBills';
 import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/hooks/useFormatters';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
+import BillForm from '@/components/bills/BillForm';
 import type { Income } from '@/hooks/useIncomes';
 
 const Income = () => {
@@ -21,6 +23,7 @@ const Income = () => {
   
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [showBillForm, setShowBillForm] = useState(false);
   
   const {
     loading,
@@ -31,6 +34,8 @@ const Income = () => {
     handleDeleteIncome,
     handleUpdateOccurrence
   } = useIncomeOperationsIntegrated(selectedMonth);
+  
+  const { createBill } = useBills();
   
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
@@ -132,6 +137,19 @@ const Income = () => {
     }
   };
 
+  const handleBillSubmit = async (billData: any) => {
+    try {
+      await createBill(billData);
+      setShowBillForm(false);
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
+    }
+  };
+
+  const handleAddIncomeClick = () => {
+    setShowBillForm(true);
+  };
+
   const formatMonthDisplay = (monthString: string) => {
     const [month, year] = monthString.split('/');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -227,7 +245,7 @@ const Income = () => {
           </div>
           
           <Button 
-            onClick={() => setShowAddIncome(!showAddIncome)} 
+            onClick={handleAddIncomeClick} 
             className="
               w-full sm:w-auto h-11 px-6
               bg-gradient-to-r from-green-600 to-green-700 
@@ -239,7 +257,7 @@ const Income = () => {
             "
           >
             <PlusCircle className="h-4 w-4 mr-2" />
-            {showAddIncome ? 'Cancelar' : 'Nova Receita'}
+            Nova Receita
           </Button>
         </div>
       </div>
@@ -387,6 +405,15 @@ const Income = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {showBillForm && (
+        <BillForm
+          onSubmit={handleBillSubmit}
+          onCancel={() => setShowBillForm(false)}
+          initialType="receivable"
+          typeDisabled={true}
+        />
       )}
 
       {/* Table */}

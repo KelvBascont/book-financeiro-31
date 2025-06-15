@@ -14,15 +14,17 @@ interface BillFormProps {
   bill?: Bill;
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  initialType?: 'payable' | 'receivable';
+  typeDisabled?: boolean;
 }
 
-const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
+const BillForm = ({ bill, onSubmit, onCancel, initialType, typeDisabled = false }: BillFormProps) => {
   const { categories } = useCategories();
   const [formData, setFormData] = useState({
     title: bill?.title || '',
     description: bill?.description || '',
     amount: bill?.amount || 0,
-    type: bill?.type || 'payable' as 'payable' | 'receivable',
+    type: bill?.type || initialType || 'payable' as 'payable' | 'receivable',
     category_id: bill?.category_id || '',
     due_date: bill?.due_date || '',
     is_recurring: bill?.is_recurring || false,
@@ -67,6 +69,7 @@ const BillForm = ({ bill, onSubmit, onCancel }: BillFormProps) => {
                   type: value as 'payable' | 'receivable',
                   category_id: '' // Reset category when type changes
                 })}
+                disabled={typeDisabled}
               >
                 <SelectTrigger>
                   <SelectValue />
