@@ -12,8 +12,6 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
-import DateRangeFilter from '@/components/DateRangeFilter';
-import PeriodSelector from '@/components/PeriodSelector';
 import type { Income } from '@/hooks/useIncomes';
 
 const Income = () => {
@@ -22,7 +20,6 @@ const Income = () => {
   const { incomeCategories, loading: categoriesLoading } = useCategories();
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
   
   const {
     loading,
@@ -45,6 +42,34 @@ const Income = () => {
     recurrence_months: '',
     category_id: ''
   });
+
+  // Generate month options (past and future)
+  const generateMonthOptions = () => {
+    const options = [];
+    const now = new Date();
+    
+    // Add past months (24 months back)
+    for (let i = 24; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthValue = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+      options.push({
+        value: monthValue,
+        label: formatters.dateMonthYear(date)
+      });
+    }
+    
+    // Add future months (12 months forward)
+    for (let i = 1; i <= 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const monthValue = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+      options.push({
+        value: monthValue,
+        label: formatters.dateMonthYear(date)
+      });
+    }
+    
+    return options;
+  };
 
   const resetForm = () => {
     setIncomeForm({
@@ -111,26 +136,6 @@ const Income = () => {
     }
   };
 
-  const handleDateRangeFilter = (startDate: string, endDate: string) => {
-    setDateFilter({ start: startDate, end: endDate });
-  };
-
-  const handleClearDateFilter = () => {
-    setDateFilter(null);
-  };
-
-  // Filter incomes by date range if filter is active
-  const displayedIncomes = dateFilter 
-    ? filteredIncomes.filter(income => {
-        const incomeDate = new Date(income.date);
-        const incomeMonth = `${(incomeDate.getMonth() + 1).toString().padStart(2, '0')}/${incomeDate.getFullYear()}`;
-        return incomeMonth >= dateFilter.start && incomeMonth <= dateFilter.end;
-      })
-    : filteredIncomes;
-
-  // Calculate filtered total
-  const displayedTotal = displayedIncomes.reduce((sum, income) => sum + income.amount, 0);
-
   const formatMonthDisplay = (monthString: string) => {
     const [month, year] = monthString.split('/');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -162,25 +167,18 @@ const Income = () => {
           <p className="text-gray-600 dark:text-gray-300">Gerencie suas receitas mensais</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            type="month"
-            value={selectedMonth.split('/').reverse().join('-')}
-            onChange={(e) => {
-              const [year, month] = e.target.value.split('-');
-              setSelectedMonth(`${month}/${year}`);
-            }}
-            className="w-full sm:w-auto"
-          />
-          <PeriodSelector
-            onPeriodChange={handleDateRangeFilter}
-            onClearFilter={handleClearDateFilter}
-            isActive={!!dateFilter}
-          />
-          <DateRangeFilter
-            onFilterChange={handleDateRangeFilter}
-            onClearFilter={handleClearDateFilter}
-            isActive={!!dateFilter}
-          />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Selecionar Período" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {generateMonthOptions().map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button 
             onClick={() => setShowAddIncome(!showAddIncome)}
             className="w-full sm:w-auto"
@@ -197,11 +195,9 @@ const Income = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {dateFilter ? 'Total do Período' : 'Total do Mês'}
-                </p>
-                <p className={`text-2xl font-bold ${getTotalColorClass(displayedTotal)}`}>
-                  {formatters.currency(displayedTotal)}
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
+                <p className={`text-2xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+                  {formatters.currency(monthlyTotal)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
@@ -215,7 +211,7 @@ const Income = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Qtd. Receitas</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {displayedIncomes.length}
+                  {filteredIncomes.length}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -347,25 +343,20 @@ const Income = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Receitas - {dateFilter ? 'Período Filtrado' : formatMonthDisplay(selectedMonth)}
+              Receitas - {formatMonthDisplay(selectedMonth)}
             </CardTitle>
             <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {dateFilter ? 'Total do Período' : 'Total do Mês'}
-              </p>
-              <p className={`text-xl font-bold ${getTotalColorClass(displayedTotal)}`}>
-                {formatters.currency(displayedTotal)}
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
+              <p className={`text-xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
+                {formatters.currency(monthlyTotal)}
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {displayedIncomes.length === 0 ? (
+          {filteredIncomes.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {dateFilter 
-                ? 'Nenhuma receita encontrada para o período selecionado'
-                : `Nenhuma receita encontrada para ${formatMonthDisplay(selectedMonth)}`
-              }
+              Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -380,7 +371,7 @@ const Income = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedIncomes.map((income) => (
+                  {filteredIncomes.map((income) => (
                     <IntegratedIncomeRow
                       key={`${income.id}-${income.occurrenceIndex || 0}`}
                       income={income}
