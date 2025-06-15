@@ -13,6 +13,7 @@ export interface FinancialInsight {
   value?: number;
   trend?: 'up' | 'down' | 'stable';
   actionable?: boolean;
+  actionTip?: string;
 }
 
 export const useAdvancedInsights = () => {
@@ -37,7 +38,8 @@ export const useAdvancedInsights = () => {
         description: `Seus gastos aumentaram ${expenseChange.toFixed(1)}% em relação ao mês passado`,
         value: expenseChange,
         trend: 'up',
-        actionable: true
+        actionable: true,
+        actionTip: 'Revise suas categorias de gastos e identifique onde houve maior aumento. Considere criar um orçamento mais restritivo para as categorias que mais cresceram. Analise se foram gastos pontuais ou se representam uma nova tendência de consumo.'
       });
     } else if (expenseChange < -15) {
       insights.push({
@@ -46,7 +48,8 @@ export const useAdvancedInsights = () => {
         description: `Você reduziu seus gastos em ${Math.abs(expenseChange).toFixed(1)}% este mês`,
         value: Math.abs(expenseChange),
         trend: 'down',
-        actionable: false
+        actionable: false,
+        actionTip: 'Parabéns! Continue com essa disciplina financeira. Considere direcionar essa economia para uma reserva de emergência ou investimentos. Documente quais estratégias funcionaram para manter esse controle.'
       });
     }
 
@@ -59,7 +62,8 @@ export const useAdvancedInsights = () => {
         description: `Suas receitas cresceram ${incomeChange.toFixed(1)}% este mês`,
         value: incomeChange,
         trend: 'up',
-        actionable: false
+        actionable: false,
+        actionTip: 'Ótimo momento para aumentar sua reserva de emergência ou fazer aportes em investimentos. Considere destinar pelo menos 20% desse aumento para poupança antes de ajustar seu padrão de vida.'
       });
     } else if (incomeChange < -10) {
       insights.push({
@@ -68,7 +72,8 @@ export const useAdvancedInsights = () => {
         description: `Suas receitas diminuíram ${Math.abs(incomeChange).toFixed(1)}% este mês`,
         value: Math.abs(incomeChange),
         trend: 'down',
-        actionable: true
+        actionable: true,
+        actionTip: 'Revise seu orçamento e corte gastos não essenciais. Priorize despesas básicas como alimentação, moradia e transporte. Considere buscar fontes de renda complementar e evite usar cartão de crédito para cobrir a diferença.'
       });
     }
 
@@ -87,18 +92,21 @@ export const useAdvancedInsights = () => {
         description: `Gastos no cartão representam ${((currentMonthCardExpenses / currentIncome) * 100).toFixed(1)}% da sua renda`,
         value: currentMonthCardExpenses,
         trend: 'up',
-        actionable: true
+        actionable: true,
+        actionTip: 'URGENTE: Reduza imediatamente o uso do cartão de crédito. Quite o máximo possível da fatura atual para evitar juros. Negocie parcelamentos se necessário. Estabeleça um limite mental de até 30% da renda para cartão.'
       });
     }
 
     // Análise de orçamento
     const overBudgetCategories = budgetProgress.filter(progress => progress.isOverBudget);
     if (overBudgetCategories.length > 0) {
+      const categoryNames = overBudgetCategories.map(c => c.categoryName).join(', ');
       insights.push({
         type: 'warning',
         title: 'Categorias Excedidas',
         description: `${overBudgetCategories.length} categoria(s) excederam o orçamento este mês`,
-        actionable: true
+        actionable: true,
+        actionTip: `Categorias problemáticas: ${categoryNames}. Analise os gastos dessas categorias e identifique compras desnecessárias. Considere reajustar os limites do orçamento se os gastos foram justificados, ou implemente alertas para controle em tempo real.`
       });
     }
 
@@ -110,7 +118,8 @@ export const useAdvancedInsights = () => {
         title: 'Excelente Taxa de Poupança',
         description: `Você está poupando ${savingsRate.toFixed(1)}% da sua renda`,
         value: savingsRate,
-        actionable: false
+        actionable: false,
+        actionTip: 'Excelente! Com essa taxa de poupança, considere diversificar seus investimentos. Mantenha a reserva de emergência (6-12 meses de gastos) e invista o excedente em diferentes classes de ativos como ações, fundos e títulos.'
       });
     } else if (savingsRate < 5) {
       insights.push({
@@ -118,7 +127,8 @@ export const useAdvancedInsights = () => {
         title: 'Taxa de Poupança Baixa',
         description: `Você está poupando apenas ${savingsRate.toFixed(1)}% da sua renda`,
         value: savingsRate,
-        actionable: true
+        actionable: true,
+        actionTip: 'ATENÇÃO: Sua capacidade de poupança está muito baixa. Comece cortando gastos supérfluos e tente poupar pelo menos 10% da renda. Use a regra 50-30-20: 50% necessidades, 30% desejos, 20% poupança/investimentos.'
       });
     }
 
