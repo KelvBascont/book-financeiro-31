@@ -73,7 +73,7 @@ const AppSidebar = () => {
   ];
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
           <Wallet className="h-6 w-6 text-primary" />
@@ -90,7 +90,7 @@ const AppSidebar = () => {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)}>
                       <Link to={item.href}>
-                        <item.icon className={`h-4 w-4 ${item.color} group-data-[collapsible=icon]:${item.color}`} />
+                        <item.icon className={`h-4 w-4 ${item.color}`} />
                         <span>{item.name}</span>
                       </Link>
                     </SidebarMenuButton>
