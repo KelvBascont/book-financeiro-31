@@ -77,7 +77,7 @@ const AppSidebar = () => {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
           <Wallet className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">FinanceApp</span>
+          <span className="font-bold text-lg">App Financeiro</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
