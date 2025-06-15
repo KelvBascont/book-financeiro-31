@@ -12,6 +12,8 @@ import { useFormatters } from '@/hooks/useFormatters';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySelector from '@/components/CategorySelector';
 import IntegratedIncomeRow from '@/components/IntegratedIncomeRow';
+import DateRangeFilter from '@/components/DateRangeFilter';
+import PeriodSelector from '@/components/PeriodSelector';
 import type { Income } from '@/hooks/useIncomes';
 
 const Income = () => {
@@ -20,6 +22,7 @@ const Income = () => {
   const { incomeCategories, loading: categoriesLoading } = useCategories();
   const currentMonth = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [dateFilter, setDateFilter] = useState<{ start: string; end: string } | null>(null);
   
   const {
     loading,
@@ -108,6 +111,26 @@ const Income = () => {
     }
   };
 
+  const handleDateRangeFilter = (startDate: string, endDate: string) => {
+    setDateFilter({ start: startDate, end: endDate });
+  };
+
+  const handleClearDateFilter = () => {
+    setDateFilter(null);
+  };
+
+  // Filter incomes by date range if filter is active
+  const displayedIncomes = dateFilter 
+    ? filteredIncomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        const incomeMonth = `${(incomeDate.getMonth() + 1).toString().padStart(2, '0')}/${incomeDate.getFullYear()}`;
+        return incomeMonth >= dateFilter.start && incomeMonth <= dateFilter.end;
+      })
+    : filteredIncomes;
+
+  // Calculate filtered total
+  const displayedTotal = displayedIncomes.reduce((sum, income) => sum + income.amount, 0);
+
   const formatMonthDisplay = (monthString: string) => {
     const [month, year] = monthString.split('/');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -148,6 +171,16 @@ const Income = () => {
             }}
             className="w-full sm:w-auto"
           />
+          <PeriodSelector
+            onPeriodChange={handleDateRangeFilter}
+            onClearFilter={handleClearDateFilter}
+            isActive={!!dateFilter}
+          />
+          <DateRangeFilter
+            onFilterChange={handleDateRangeFilter}
+            onClearFilter={handleClearDateFilter}
+            isActive={!!dateFilter}
+          />
           <Button 
             onClick={() => setShowAddIncome(!showAddIncome)}
             className="w-full sm:w-auto"
@@ -164,9 +197,11 @@ const Income = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-                <p className={`text-2xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
-                  {formatters.currency(monthlyTotal)}
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {dateFilter ? 'Total do Período' : 'Total do Mês'}
+                </p>
+                <p className={`text-2xl font-bold ${getTotalColorClass(displayedTotal)}`}>
+                  {formatters.currency(displayedTotal)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
@@ -180,7 +215,7 @@ const Income = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Qtd. Receitas</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {filteredIncomes.length}
+                  {displayedIncomes.length}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -312,20 +347,25 @@ const Income = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Receitas - {formatMonthDisplay(selectedMonth)}
+              Receitas - {dateFilter ? 'Período Filtrado' : formatMonthDisplay(selectedMonth)}
             </CardTitle>
             <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total do Mês</p>
-              <p className={`text-xl font-bold ${getTotalColorClass(monthlyTotal)}`}>
-                {formatters.currency(monthlyTotal)}
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                {dateFilter ? 'Total do Período' : 'Total do Mês'}
+              </p>
+              <p className={`text-xl font-bold ${getTotalColorClass(displayedTotal)}`}>
+                {formatters.currency(displayedTotal)}
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {filteredIncomes.length === 0 ? (
+          {displayedIncomes.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Nenhuma receita encontrada para {formatMonthDisplay(selectedMonth)}
+              {dateFilter 
+                ? 'Nenhuma receita encontrada para o período selecionado'
+                : `Nenhuma receita encontrada para ${formatMonthDisplay(selectedMonth)}`
+              }
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -340,7 +380,7 @@ const Income = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIncomes.map((income) => (
+                  {displayedIncomes.map((income) => (
                     <IntegratedIncomeRow
                       key={`${income.id}-${income.occurrenceIndex || 0}`}
                       income={income}
