@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useIntegratedFinancialData } from '@/hooks/useIntegratedFinancialData';
 import { useCardExpenses } from '@/hooks/useCardExpenses';
 import { useBudgetProgress } from '@/hooks/useBudgetProgress';
+import { useMonthlyBudgets } from '@/hooks/useMonthlyBudgets';
 import { format, subMonths, startOfMonth } from 'date-fns';
 
 export interface FinancialInsight {
@@ -21,7 +22,8 @@ export const useAdvancedInsights = () => {
   const { expensesTotal: currentExpenses, incomesTotal: currentIncome } = useIntegratedFinancialData(currentMonth);
   const { expensesTotal: previousExpenses, incomesTotal: previousIncome } = useIntegratedFinancialData(previousMonth);
   const { cardExpenses } = useCardExpenses();
-  const { budgetProgress } = useBudgetProgress(startOfMonth(new Date()));
+  const { budgets } = useMonthlyBudgets();
+  const { budgetProgress } = useBudgetProgress(budgets, startOfMonth(new Date()));
 
   const insights = useMemo((): FinancialInsight[] => {
     const insights: FinancialInsight[] = [];

@@ -21,8 +21,8 @@ export interface BudgetAlert {
 
 export const useIntelligentBudgetAlerts = () => {
   const currentMonth = startOfMonth(new Date());
-  const { budgetProgress } = useBudgetProgress(currentMonth);
-  const { alerts: budgetAlertsConfig } = useMonthlyBudgets();
+  const { budgets, alerts: budgetAlertsConfig } = useMonthlyBudgets();
+  const { budgetProgress } = useBudgetProgress(budgets, currentMonth);
 
   const intelligentAlerts = useMemo((): BudgetAlert[] => {
     const alerts: BudgetAlert[] = [];

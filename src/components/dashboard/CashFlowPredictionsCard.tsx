@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Crystal, TrendingUp, AlertTriangle, Target } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Target } from 'lucide-react';
 import { useCashFlowPredictions } from '@/hooks/useCashFlowPredictions';
 import { useFormatters } from '@/hooks/useFormatters';
 
@@ -32,7 +32,7 @@ const CashFlowPredictionsCard = () => {
     <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-          <Crystal className="h-5 w-5 text-blue-600" />
+          <TrendingUp className="h-5 w-5 text-blue-600" />
           Previsões de Fluxo de Caixa
         </CardTitle>
       </CardHeader>
@@ -155,7 +155,7 @@ const CashFlowPredictionsCard = () => {
           </div>
         ) : (
           <div className="text-center py-6">
-            <Crystal className="h-12 w-12 mx-auto text-blue-500 mb-2 opacity-50" />
+            <TrendingUp className="h-12 w-12 mx-auto text-blue-500 mb-2 opacity-50" />
             <p className="text-gray-600 dark:text-gray-300">
               Adicione mais dados para gerar previsões precisas
             </p>
