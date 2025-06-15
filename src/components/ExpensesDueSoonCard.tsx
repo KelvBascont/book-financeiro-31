@@ -1,40 +1,37 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, AlertTriangle } from 'lucide-react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { Calendar, AlertTriangle, DollarSign, TrendingUp } from 'lucide-react';
+import { useBills } from '@/hooks/useBills';
 import { useFormatters } from '@/hooks/useFormatters';
-import { useRecurrenceFilter } from '@/hooks/useRecurrenceFilter';
 import { addDays, format, isWithinInterval, parseISO } from 'date-fns';
 
 const ExpensesDueSoonCard = () => {
   const formatters = useFormatters();
-  const { cashExpenses, loading } = useSupabaseData();
-  const { filterByReferenceMonth, generateOccurrences } = useRecurrenceFilter();
+  const { bills, loading } = useBills();
 
-  // Filtrar despesas com vencimento nos próximos 30 dias
-  const getExpensesDueSoon = () => {
+  // Filtrar contas com vencimento nos próximos 30 dias
+  const getBillsDueSoon = () => {
     const today = new Date();
     const endDate = addDays(today, 30);
     
-    // Gerar todas as ocorrências das despesas (incluindo recorrentes)
-    const allOccurrences = cashExpenses.flatMap(expense => generateOccurrences(expense));
-
-    // Filtrar apenas as que vencem nos próximos 30 dias
-    return allOccurrences
-      .filter(expense => {
-        if (!expense.due_date) return false;
-        const dueDate = parseISO(expense.due_date);
+    return bills
+      .filter(bill => {
+        // Apenas contas pendentes ou vencidas
+        if (bill.status === 'paid') return false;
+        
+        const dueDate = parseISO(bill.due_date);
         return isWithinInterval(dueDate, { start: today, end: endDate });
       })
       .sort((a, b) => {
-        if (!a.due_date || !b.due_date) return 0;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        const dateA = new Date(a.due_date).getTime();
+        const dateB = new Date(b.due_date).getTime();
+        return dateA - dateB;
       })
       .slice(0, 8); // Limitar a 8 itens para não sobrecarregar o card
   };
 
-  const expensesDueSoon = getExpensesDueSoon();
+  const billsDueSoon = getBillsDueSoon();
 
   const getDaysUntilDue = (dueDate: string) => {
     const today = new Date();
@@ -51,13 +48,25 @@ const ExpensesDueSoonCard = () => {
     return 'text-gray-600 dark:text-gray-400';
   };
 
+  const getTypeIcon = (type: string) => {
+    return type === 'payable' ? (
+      <DollarSign className="h-3 w-3 text-red-500" />
+    ) : (
+      <TrendingUp className="h-3 w-3 text-green-500" />
+    );
+  };
+
+  const getTypeColor = (type: string) => {
+    return type === 'payable' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+  };
+
   if (loading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Despesas com Vencimento
+            Contas com Vencimento
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -79,46 +88,39 @@ const ExpensesDueSoonCard = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          Despesas com Vencimento
+          Contas com Vencimento
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             (30 dias)
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {expensesDueSoon.length === 0 ? (
+        {billsDueSoon.length === 0 ? (
           <div className="text-center py-4 text-gray-500 dark:text-gray-400">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Nenhuma despesa com vencimento próximo</p>
+            <p className="text-sm">Nenhuma conta com vencimento próximo</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto">
-            {expensesDueSoon.map((expense, index) => {
-              const daysUntilDue = getDaysUntilDue(expense.due_date!);
+            {billsDueSoon.map((bill) => {
+              const daysUntilDue = getDaysUntilDue(bill.due_date);
               const urgencyColor = getUrgencyColor(daysUntilDue);
               
               return (
-                <div key={`${expense.id}-${expense.occurrenceIndex || 0}-${index}`} 
-                     className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
+                <div key={bill.id} className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {expense.description}
+                        {bill.title}
                       </p>
-                      {expense.is_recurring && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center">
-                            <span className="text-xs text-white">↻</span>
-                          </div>
-                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                            #{(expense.occurrenceIndex || 0) + 1}
-                          </span>
-                        </div>
-                      )}
+                      {getTypeIcon(bill.type)}
+                      <span className={`text-xs font-medium ${getTypeColor(bill.type)}`}>
+                        {bill.type === 'payable' ? 'Pagar' : 'Receber'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <p className={`text-xs ${urgencyColor}`}>
-                        {formatters.date(expense.due_date!)}
+                        {formatters.date(bill.due_date)}
                       </p>
                       {daysUntilDue <= 3 && (
                         <AlertTriangle className="h-3 w-3 text-red-500" />
@@ -129,10 +131,15 @@ const ExpensesDueSoonCard = () => {
                          `${daysUntilDue} dias`}
                       </span>
                     </div>
+                    {bill.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                        {bill.description}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
-                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                      {formatters.currency(expense.amount)}
+                    <p className={`text-sm font-semibold ${getTypeColor(bill.type)}`}>
+                      {formatters.currency(bill.amount)}
                     </p>
                   </div>
                 </div>
@@ -140,15 +147,31 @@ const ExpensesDueSoonCard = () => {
             })}
           </div>
         )}
-        {expensesDueSoon.length > 0 && (
+        {billsDueSoon.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600 dark:text-gray-400">
                 Total (30 dias):
               </span>
-              <span className="font-semibold text-red-600 dark:text-red-400">
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
                 {formatters.currency(
-                  expensesDueSoon.reduce((sum, expense) => sum + expense.amount, 0)
+                  billsDueSoon.reduce((sum, bill) => {
+                    return bill.type === 'payable' 
+                      ? sum + bill.amount 
+                      : sum - bill.amount;
+                  }, 0)
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <span>
+                A Pagar: {formatters.currency(
+                  billsDueSoon.filter(b => b.type === 'payable').reduce((sum, bill) => sum + bill.amount, 0)
+                )}
+              </span>
+              <span>
+                A Receber: {formatters.currency(
+                  billsDueSoon.filter(b => b.type === 'receivable').reduce((sum, bill) => sum + bill.amount, 0)
                 )}
               </span>
             </div>
