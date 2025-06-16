@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, addMonths } from 'date-fns'; // Importe addMonths
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useFormatters } from '@/hooks/useFormatters';
 
@@ -19,16 +19,16 @@ const MonthNavigation = ({
 }: MonthNavigationProps) => {
   const formatters = useFormatters();
   
-  // Calcula o próximo mês (mês da fatura)
   const nextMonth = addMonths(selectedMonth, 1);
 
   return (
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-4">
+    <div className="flex justify-between items-center w-full">
+      {/* Seção Esquerda - Navegação do Mês */}
+      <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={onPreviousMonth} className="border-gray-600 text-white hover:bg-gray-800">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-xl font-semibold min-w-[150px] text-center">
+        <h2 className="text-lg font-semibold min-w-[120px] text-center">
           {format(selectedMonth, 'MMMM/yyyy', {
             locale: ptBR
           })}
@@ -38,17 +38,19 @@ const MonthNavigation = ({
         </Button>
       </div>
       
-      {/* Nova seção central para mostrar a fatura */}
-      <div className="text-center">
-        <p className="text-lg font-semibold">
-          Fatura - {format(nextMonth, 'MMMM', { locale: ptBR })}
+      {/* Seção Central - Fatura */}
+      <div className="flex flex-col items-center">
+        <p className="text-sm text-gray-400">Fatura do próximo mês</p>
+        <p className="text-xl font-bold text-orange-400">
+          {format(nextMonth, 'MMMM', { locale: ptBR })}
         </p>
       </div>
       
-      <div className="text-right">
-        <p className="text-gray-400">Total do Mês</p>
-        <p className="text-2xl font-bold text-orange-400">{formatters.currency(totalInBills)}</p>
-        <p className="text-sm text-gray-400">Soma das Despesas</p>
+      {/* Seção Direita - Total */}
+      <div className="flex flex-col items-end">
+        <p className="text-sm text-gray-400">Total do Mês</p>
+        <p className="text-xl font-bold text-orange-400">{formatters.currency(totalInBills)}</p>
+        <p className="text-xs text-gray-400">Soma das Despesas</p>
       </div>
     </div>
   );
