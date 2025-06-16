@@ -75,7 +75,12 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
             variant="outline" 
             size="sm" 
             onClick={onPreviousMonth} 
-            className="border-gray-600 text-white hover:bg-gray-800"
+            className="
+              border-dark-300 dark:border-gray-600 
+              text-dark-800 dark:text-white 
+              hover:bg-gray-100 dark:hover:bg-gray-800
+              transition-colors
+            "
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -84,7 +89,12 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
             variant="outline" 
             size="sm" 
             onClick={onNextMonth} 
-            className="border-gray-600 text-white hover:bg-gray-800"
+            className="
+              border-dark-300 dark:border-gray-600 
+              text-dark-800 dark:text-white 
+              hover:bg-gray-100 dark:hover:bg-gray-800
+              transition-colors
+            "
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
