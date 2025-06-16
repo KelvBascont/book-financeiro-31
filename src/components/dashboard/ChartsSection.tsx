@@ -1,22 +1,19 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ExpensesDueSoonCard from '@/components/ExpensesDueSoonCard';
 import CashFlowChart from './CashFlowChart';
-
 interface MonthlyData {
   month: string;
   income: number;
   expenses: number;
   cardExpenses: number;
 }
-
 interface ChartsSectionProps {
   monthlyData: MonthlyData[];
 }
-
-const ChartsSection = ({ monthlyData }: ChartsSectionProps) => {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+const ChartsSection = ({
+  monthlyData
+}: ChartsSectionProps) => {
+  return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader className="pb-4">
@@ -35,8 +32,6 @@ const ChartsSection = ({ monthlyData }: ChartsSectionProps) => {
       <div className="space-y-6">
         <ExpensesDueSoonCard />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ChartsSection;
