@@ -51,7 +51,7 @@ const Header = () => {
       <SidebarTrigger className="-ml-1" />
       
       <div className="flex-1 flex justify-center">
-        <h1 className="text-xl font-bold text-primary">App Financeiro</h1>
+        <h1 className="text-xl font-bold text-primary">Seu App de Controle Financeiro</h1>
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4">
