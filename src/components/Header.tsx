@@ -1,4 +1,4 @@
-import { LogOut, User, Bell } from 'lucide-react';
+import { LogOut, User, Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -8,13 +8,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 const Header = () => {
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const {
     notifications,
     unreadCount,
@@ -22,6 +25,7 @@ const Header = () => {
     markAllAsRead,
     deleteNotification
   } = useNotifications();
+  
   const getUserName = () => {
     if (user?.user_metadata?.full_name) {
       return user.user_metadata.full_name;
@@ -32,6 +36,7 @@ const Header = () => {
     }
     return 'Usuário';
   };
+  
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -47,45 +52,88 @@ const Header = () => {
       });
     }
   };
-  return <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger className="-ml-1" />
-      
-      <div className="flex-1 flex justify-center">
-        <h1 className="text-xl font-bold text-primary">Seu App de Controle Financeiro</h1>
-      </div>
-      
-      <div className="flex items-center gap-2 sm:gap-4">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 relative text-red-700">
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
-                  {unreadCount}
-                </span>}
-              <span className="sr-only">Notificações</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
-            <NotificationCenter notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} onDelete={deleteNotification} />
-          </PopoverContent>
-        </Popover>
+  
+  return (
+    <TooltipProvider> {/* Envolve todo o header */}
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         
-        <ThemeToggle />
+        {/* Botão do menu lateral com tooltip */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarTrigger className="-ml-1">
+              {/* Adiciona um ícone visível para o botão do menu */}
+              <Menu className="h-5 w-5" />
+            </SidebarTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Expandir/Recolher menu</p>
+          </TooltipContent>
+        </Tooltip>
         
-        {user && <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground truncate max-w-32">
-                {getUserName()}
-              </span>
+        <div className="flex-1 flex justify-center">
+          <h1 className="text-xl font-bold text-primary">Seu App de Controle Financeiro</h1>
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Botão de notificações com tooltip */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9 relative">
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+                        {unreadCount}
+                      </span>
+                    )}
+                    <span className="sr-only">Notificações</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Notificações</p>
+                </TooltipContent>
+              </Tooltip>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
+              <NotificationCenter 
+                notifications={notifications} 
+                unreadCount={unreadCount} 
+                onMarkAsRead={markAsRead} 
+                onMarkAllAsRead={markAllAsRead} 
+                onDelete={deleteNotification} 
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <ThemeToggle />
+          
+          {user && (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground truncate max-w-32">
+                  {getUserName()}
+                </span>
+              </div>
+              
+              <Tooltip> {/* Tooltip para o botão Sair */}
+                <TooltipTrigger asChild>
+                  <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2">
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sair da conta</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
-            
-            <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Sair</span>
-            </Button>
-          </div>}
-      </div>
-    </header>;
+          )}
+        </div>
+      </header>
+    </TooltipProvider>
+  );
 };
+
 export default Header;
