@@ -75,11 +75,12 @@ const Header = () => {
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Botão de notificações com tooltip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Tooltip>
-                <TooltipTrigger asChild>
+          {/* Botão de notificações com tooltip e popover */}
+          <Tooltip>
+            <Popover>
+              {/* Movemos o TooltipTrigger para envolver diretamente o PopoverTrigger */}
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" className="h-9 w-9 relative">
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
@@ -89,22 +90,23 @@ const Header = () => {
                     )}
                     <span className="sr-only">Notificações</span>
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Notificações</p>
-                </TooltipContent>
-              </Tooltip>
-            </PopoverTrigger>
-            <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
-              <NotificationCenter 
-                notifications={notifications} 
-                unreadCount={unreadCount} 
-                onMarkAsRead={markAsRead} 
-                onMarkAllAsRead={markAllAsRead} 
-                onDelete={deleteNotification} 
-              />
-            </PopoverContent>
-          </Popover>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Notificações</p>
+              </TooltipContent>
+              
+              <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
+                <NotificationCenter 
+                  notifications={notifications} 
+                  unreadCount={unreadCount} 
+                  onMarkAsRead={markAsRead} 
+                  onMarkAllAsRead={markAllAsRead} 
+                  onDelete={deleteNotification} 
+                />
+              </PopoverContent>
+            </Popover>
+          </Tooltip>
           
           <ThemeToggle />
           
