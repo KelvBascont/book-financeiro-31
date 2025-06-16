@@ -67,7 +67,7 @@ const BillsList = ({ bills, selectedMonth, onPayBill, onEditBill }: BillsListPro
                   <div>
                     <p className="font-medium">{bill.cardName}</p>
                     <p className="text-sm text-gray-400">
-                      {bill.expensesCount} parcela{bill.expensesCount !== 1 ? 's' : ''}
+                      {bill.expensesCount} Lançamento{bill.expensesCount !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </div>
