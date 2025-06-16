@@ -1,7 +1,6 @@
-
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PlusCircle, Calendar, ChevronDown } from 'lucide-react';
+import { PlusCircle, Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,6 +47,21 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
   // Get current month string for comparison
   const currentMonthString = getMonthStringFromDate(new Date());
 
+  // Funções para navegar entre os meses
+  const onPreviousMonth = () => {
+    const currentDate = getDateFromMonthString(selectedMonth);
+    const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const previousMonthString = getMonthStringFromDate(previousMonth);
+    onMonthChange(previousMonthString);
+  };
+
+  const onNextMonth = () => {
+    const currentDate = getDateFromMonthString(selectedMonth);
+    const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    const nextMonthString = getMonthStringFromDate(nextMonth);
+    onMonthChange(nextMonthString);
+  };
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
@@ -55,6 +69,28 @@ const CashExpensesHeader = ({ selectedMonth, onMonthChange, onAddExpense }: Cash
         <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas despesas mensais</p>
       </div>
       <div className="flex items-center gap-4">
+        {/* Botões de navegação de mês */}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onPreviousMonth} 
+            className="border-gray-600 text-white hover:bg-gray-800"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onNextMonth} 
+            className="border-gray-600 text-white hover:bg-gray-800"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Dropdown de seleção de mês */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
