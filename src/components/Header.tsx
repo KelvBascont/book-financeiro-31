@@ -1,65 +1,91 @@
-import { Moon, Sun, Bell } from 'lucide-react'; // Importe o ícone Bell
+import { LogOut, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTheme } from './ThemeProvider';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const isLightTheme = theme === 'light';
-
-  return (
-    <div className="flex gap-2"> {/* Adicione um container para agrupar os botões */}
-      {/* Botão de Tema */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setTheme(isLightTheme ? 'dark' : 'light')}
-              className="h-9 w-9 relative"
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 text-yellow-400 transition-all dark:-rotate-90 dark:scale-0 dark:text-transparent" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 text-transparent transition-all dark:rotate-0 dark:scale-100 dark:text-blue-400" />
-              <span className="sr-only">Alternar tema</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{isLightTheme ? 'Alternar para modo escuro' : 'Alternar para modo claro'}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* Botão de Notificações */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => console.log('Notificações clicadas')} // Adicione sua lógica aqui
-              className="h-9 w-9 relative"
-            >
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
+const Header = () => {
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = useNotifications();
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      const emailName = user.email.split('@')[0];
+      return emailName.replace(/[^a-zA-Z\s]/g, '').split(/[\s_.-]+/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') || 'Usuário';
+    }
+    return 'Usuário';
+  };
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao realizar logout",
+        variant: "destructive"
+      });
+    }
+  };
+  return <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      
+      <div className="flex-1 flex justify-center">
+        <h1 className="text-xl font-bold text-primary">App Financeiro</h1>
+      </div>
+      
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="h-9 w-9 relative text-red-700">
               <Bell className="h-4 w-4" />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+                  {unreadCount}
+                </span>}
               <span className="sr-only">Notificações</span>
-              
-              {/* Indicador de notificações não lidas (opcional) */}
-              <span className="absolute top-0 right-0 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Ver notificações</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-}
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
+            <NotificationCenter notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} onDelete={deleteNotification} />
+          </PopoverContent>
+        </Popover>
+        
+        <ThemeToggle />
+        
+        {user && <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground truncate max-w-32">
+                {getUserName()}
+              </span>
+            </div>
+            
+            <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
+          </div>}
+      </div>
+    </header>;
+};
+export default Header;
