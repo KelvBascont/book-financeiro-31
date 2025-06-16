@@ -16,7 +16,7 @@ export function ThemeToggle() {
       <Sun className="h-4 w-4 rotate-0 scale-100 text-yellow-400 transition-all dark:-rotate-90 dark:scale-0 dark:text-transparent" />
       
       {/* Ícone da Lua - visível apenas no tema escuro */}
-      <Moon className="absolute h-4 w-4 rotate-90 scale-0 text-transparent transition-all dark:rotate-0 dark:scale-100 dark:text-white-400" />
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 text-transparent transition-all dark:rotate-0 dark:scale-100 dark:text-whrite-400" />
       
       <span className="sr-only">Alternar tema</span>
     </Button>
