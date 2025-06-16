@@ -8,16 +8,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 const Header = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const {
     notifications,
     unreadCount,
@@ -25,7 +23,6 @@ const Header = () => {
     markAllAsRead,
     deleteNotification
   } = useNotifications();
-  
   const getUserName = () => {
     if (user?.user_metadata?.full_name) {
       return user.user_metadata.full_name;
@@ -36,7 +33,6 @@ const Header = () => {
     }
     return 'Usuário';
   };
-  
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -52,9 +48,7 @@ const Header = () => {
       });
     }
   };
-  
-  return (
-    <TooltipProvider>
+  return <TooltipProvider>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         {/* Botão do menu lateral com tooltip */}
         <Tooltip>
@@ -80,17 +74,11 @@ const Header = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-9 w-9 relative bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
+                  <Button variant="outline" size="icon" className="h-9 w-9 relative bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600">
                     <Bell className="h-4 w-4 text-gray-800 dark:text-gray-200" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+                    {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
                         {unreadCount}
-                      </span>
-                    )}
+                      </span>}
                     <span className="sr-only">Notificações</span>
                   </Button>
                 </PopoverTrigger>
@@ -100,20 +88,13 @@ const Header = () => {
               </TooltipContent>
             </Tooltip>
             <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
-              <NotificationCenter 
-                notifications={notifications} 
-                unreadCount={unreadCount} 
-                onMarkAsRead={markAsRead} 
-                onMarkAllAsRead={markAllAsRead} 
-                onDelete={deleteNotification} 
-              />
+              <NotificationCenter notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} onDelete={deleteNotification} />
             </PopoverContent>
           </Popover>
           
           <ThemeToggle />
           
-          {user && (
-            <div className="flex items-center gap-2 sm:gap-3">
+          {user && <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground truncate max-w-32">
@@ -123,12 +104,7 @@ const Header = () => {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleLogout} 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1 sm:gap-2 bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
+                  <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2 bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <LogOut className="h-4 w-4 text-gray-800 dark:text-gray-200" />
                     <span className="hidden sm:inline text-gray-800 dark:text-gray-200">Sair</span>
                   </Button>
@@ -137,12 +113,9 @@ const Header = () => {
                   <p>Sair da conta</p>
                 </TooltipContent>
               </Tooltip>
-            </div>
-          )}
+            </div>}
         </div>
       </header>
-    </TooltipProvider>
-  );
+    </TooltipProvider>;
 };
-
 export default Header;
