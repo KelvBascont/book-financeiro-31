@@ -54,16 +54,16 @@ const Header = () => {
   };
   
   return (
-    <TooltipProvider> {/* Envolve todo o header */}
+    <TooltipProvider>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        
         {/* Botão do menu lateral com tooltip */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <SidebarTrigger className="-ml-1">
-              {/* Adiciona um ícone visível para o botão do menu */}
-              <Menu className="h-5 w-5" />
-            </SidebarTrigger>
+            <div className="flex items-center">
+              <SidebarTrigger className="-ml-1">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+            </div>
           </TooltipTrigger>
           <TooltipContent>
             <p>Expandir/Recolher menu</p>
@@ -75,27 +75,30 @@ const Header = () => {
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4">
-        {/* Botão de notificações com tooltip e popover */}
-        <Tooltip>
+          {/* Botão de notificações CORRIGIDO */}
           <Popover>
-            {/* Movemos o TooltipTrigger para envolver diretamente o PopoverTrigger */}
-            <TooltipTrigger asChild>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 relative">
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                  <span className="sr-only">Notificações</span>
-                </Button>
-              </PopoverTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Notificações</p>
-            </TooltipContent>
-            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 relative bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <Bell className="h-4 w-4 text-gray-800 dark:text-gray-200" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+                        {unreadCount}
+                      </span>
+                    )}
+                    <span className="sr-only">Notificações</span>
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Notificações</p>
+              </TooltipContent>
+            </Tooltip>
             <PopoverContent className="w-96 p-0 max-h-96 overflow-y-auto" align="end">
               <NotificationCenter 
                 notifications={notifications} 
@@ -106,7 +109,6 @@ const Header = () => {
               />
             </PopoverContent>
           </Popover>
-        </Tooltip>
           
           <ThemeToggle />
           
@@ -119,11 +121,16 @@ const Header = () => {
                 </span>
               </div>
               
-              <Tooltip> {/* Tooltip para o botão Sair */}
+              <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2">
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sair</span>
+                  <Button 
+                    onClick={handleLogout} 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1 sm:gap-2 bg-transparent border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <LogOut className="h-4 w-4 text-gray-800 dark:text-gray-200" />
+                    <span className="hidden sm:inline text-gray-800 dark:text-gray-200">Sair</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
