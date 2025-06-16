@@ -76,8 +76,8 @@ const IncomeHeader = ({ selectedMonth, onMonthChange, onAddIncome }: IncomeHeade
           size="sm" 
           onClick={onPreviousMonth} 
           className="
-            border-gray-300 dark:border-gray-600 
-            text-gray-800 dark:text-white 
+            border-dark-300 dark:border-gray-600 
+            text-dark-800 dark:text-white 
             hover:bg-gray-100 dark:hover:bg-gray-800
             transition-colors
           "
@@ -90,8 +90,8 @@ const IncomeHeader = ({ selectedMonth, onMonthChange, onAddIncome }: IncomeHeade
           size="sm" 
           onClick={onNextMonth} 
           className="
-            border-gray-300 dark:border-gray-600 
-            text-gray-800 dark:text-white 
+            border-dark-300 dark:border-gray-600 
+            text-dark-800 dark:text-white 
             hover:bg-gray-100 dark:hover:bg-gray-800
             transition-colors
           "
