@@ -23,11 +23,11 @@ const MonthNavigation = ({
         <Button variant="outline" size="sm" onClick={onPreviousMonth} className="border-gray-600 text-white hover:bg-gray-800">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-lg font-semibold min-w-[120px] text-center">
+        {/* <h2 className="text-lg font-semibold min-w-[120px] text-center">
           {format(selectedMonth, 'MMMM/yyyy', {
           locale: ptBR
         })}
-        </h2>
+        </h2> */}
         <Button variant="outline" size="sm" onClick={onNextMonth} className="border-gray-600 text-white hover:bg-gray-800">
           <ChevronRight className="h-4 w-4" />
         </Button>
