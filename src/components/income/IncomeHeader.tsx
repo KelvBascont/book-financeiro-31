@@ -69,26 +69,36 @@ const IncomeHeader = ({ selectedMonth, onMonthChange, onAddIncome }: IncomeHeade
         <p className="text-gray-600 dark:text-gray-300 mt-1">Gerencie suas receitas mensais</p>
       </div>
       <div className="flex items-center gap-4">
-        {/* Botões de navegação de mês */}
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onPreviousMonth} 
-            className="border-gray-600 text-white hover:bg-gray-800"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onNextMonth} 
-            className="border-gray-600 text-white hover:bg-gray-800"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Botões de navegação de mês */}
+      <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onPreviousMonth} 
+          className="
+            border-gray-300 dark:border-gray-600 
+            text-gray-800 dark:text-white 
+            hover:bg-gray-100 dark:hover:bg-gray-800
+            transition-colors
+          "
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onNextMonth} 
+          className="
+            border-gray-300 dark:border-gray-600 
+            text-gray-800 dark:text-white 
+            hover:bg-gray-100 dark:hover:bg-gray-800
+            transition-colors
+          "
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
         {/* Dropdown de seleção de mês */}
         <DropdownMenu>
