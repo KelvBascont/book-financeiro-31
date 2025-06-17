@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,76 +14,63 @@ import BudgetAlertsConfig from './budgets/BudgetAlertsConfig';
 import BudgetDashboard from './budgets/BudgetDashboard';
 import BudgetTemplates from './budgets/BudgetTemplates';
 import BudgetReports from './budgets/BudgetReports';
-
 const MonthlyBudgets = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [showAlertsConfig, setShowAlertsConfig] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
-  
-  const { budgets, alerts, loading, createBudget, updateBudget, deleteBudget, updateAlert } = useMonthlyBudgets();
-  const { budgetProgress, summary } = useBudgetProgress(budgets, selectedMonth);
-
+  const {
+    budgets,
+    alerts,
+    loading,
+    createBudget,
+    updateBudget,
+    deleteBudget,
+    updateAlert
+  } = useMonthlyBudgets();
+  const {
+    budgetProgress,
+    summary
+  } = useBudgetProgress(budgets, selectedMonth);
   const handleCreateBudgetsFromTemplate = async (newBudgets: any[]) => {
     for (const budget of newBudgets) {
       await createBudget(budget);
     }
   };
-
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
+    return <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="animate-pulse">
+          {[1, 2, 3].map(i => <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-20 bg-gray-200 rounded"></div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-6 space-y-6">
+  return <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Orçamento Mensal</h1>
           <p className="text-muted-foreground">
-            {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+            {format(selectedMonth, "MMMM 'de' yyyy", {
+            locale: ptBR
+          })}
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="month"
-            value={format(selectedMonth, 'yyyy-MM')}
-            onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
-            className="px-3 py-2 border rounded-md"
-          />
-          <Button 
-            onClick={() => setShowTemplates(true)}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
+          <input type="month" value={format(selectedMonth, 'yyyy-MM')} onChange={e => setSelectedMonth(new Date(e.target.value + '-01'))} className="px-3 py-2 border rounded-md bg-zinc-700" />
+          <Button onClick={() => setShowTemplates(true)} variant="outline" className="flex items-center gap-2">
             <Copy className="h-4 w-4" />
             Templates
           </Button>
-          <Button 
-            onClick={() => setShowAlertsConfig(true)}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
+          <Button onClick={() => setShowAlertsConfig(true)} variant="outline" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Alertas
           </Button>
-          <Button 
-            onClick={() => setShowBudgetForm(true)}
-            className="flex items-center gap-2"
-          >
+          <Button onClick={() => setShowBudgetForm(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Novo Orçamento
           </Button>
@@ -125,10 +111,8 @@ const MonthlyBudgets = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {budgetProgress.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {budgetProgress.slice(0, 6).map((progress) => (
-                    <div key={progress.categoryId} className="p-4 border rounded-lg">
+              {budgetProgress.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {budgetProgress.slice(0, 6).map(progress => <div key={progress.categoryId} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-medium">{progress.categoryName}</h3>
                         <span className={`text-sm ${progress.isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
@@ -141,29 +125,21 @@ const MonthlyBudgets = () => {
                           <span>Limite: R$ {progress.budgetLimit.toFixed(2)}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${progress.isOverBudget ? 'bg-red-500' : 'bg-green-500'}`}
-                            style={{ width: `${Math.min(progress.percentage, 100)}%` }}
-                          />
+                          <div className={`h-2 rounded-full ${progress.isOverBudget ? 'bg-red-500' : 'bg-green-500'}`} style={{
+                      width: `${Math.min(progress.percentage, 100)}%`
+                    }} />
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
+                    </div>)}
+                </div> : <div className="text-center py-8">
                   <Target className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-muted-foreground">
                     Nenhum orçamento definido para este mês
                   </p>
-                  <Button 
-                    onClick={() => setShowBudgetForm(true)}
-                    className="mt-4"
-                  >
+                  <Button onClick={() => setShowBudgetForm(true)} className="mt-4">
                     Criar Primeiro Orçamento
                   </Button>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -183,68 +159,31 @@ const MonthlyBudgets = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {budgetProgress.length > 0 ? (
-                <BudgetProgressList 
-                  budgetProgress={budgetProgress}
-                  alerts={alerts}
-                  onUpdateBudget={updateBudget}
-                  onDeleteBudget={deleteBudget}
-                />
-              ) : (
-                <div className="text-center py-8">
+              {budgetProgress.length > 0 ? <BudgetProgressList budgetProgress={budgetProgress} alerts={alerts} onUpdateBudget={updateBudget} onDeleteBudget={deleteBudget} /> : <div className="text-center py-8">
                   <Target className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-muted-foreground">
                     Nenhum orçamento definido para este mês
                   </p>
-                  <Button 
-                    onClick={() => setShowBudgetForm(true)}
-                    className="mt-4"
-                  >
+                  <Button onClick={() => setShowBudgetForm(true)} className="mt-4">
                     Criar Primeiro Orçamento
                   </Button>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Relatórios */}
         <TabsContent value="reports">
-          <BudgetReports 
-            budgets={budgets}
-            currentProgress={budgetProgress}
-            selectedMonth={selectedMonth}
-          />
+          <BudgetReports budgets={budgets} currentProgress={budgetProgress} selectedMonth={selectedMonth} />
         </TabsContent>
       </Tabs>
 
       {/* Modals */}
-      {showBudgetForm && (
-        <BudgetForm
-          selectedMonth={selectedMonth}
-          onSubmit={createBudget}
-          onClose={() => setShowBudgetForm(false)}
-        />
-      )}
+      {showBudgetForm && <BudgetForm selectedMonth={selectedMonth} onSubmit={createBudget} onClose={() => setShowBudgetForm(false)} />}
 
-      {showAlertsConfig && (
-        <BudgetAlertsConfig
-          alerts={alerts}
-          onUpdateAlert={updateAlert}
-          onClose={() => setShowAlertsConfig(false)}
-        />
-      )}
+      {showAlertsConfig && <BudgetAlertsConfig alerts={alerts} onUpdateAlert={updateAlert} onClose={() => setShowAlertsConfig(false)} />}
 
-      {showTemplates && (
-        <BudgetTemplates
-          budgets={budgets}
-          selectedMonth={selectedMonth}
-          onCreateBudgetsFromTemplate={handleCreateBudgetsFromTemplate}
-          onClose={() => setShowTemplates(false)}
-        />
-      )}
-    </div>
-  );
+      {showTemplates && <BudgetTemplates budgets={budgets} selectedMonth={selectedMonth} onCreateBudgetsFromTemplate={handleCreateBudgetsFromTemplate} onClose={() => setShowTemplates(false)} />}
+    </div>;
 };
-
 export default MonthlyBudgets;
