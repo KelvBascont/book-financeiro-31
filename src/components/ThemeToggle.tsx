@@ -1,27 +1,17 @@
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from './ThemeProvider';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const {
+    theme,
+    setTheme
+  } = useTheme();
   const isLightTheme = theme === 'light';
-
-  return (
-    <TooltipProvider>
+  return <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setTheme(isLightTheme ? 'dark' : 'light')}
-            className="h-9 w-9 relative"
-          >
+          <Button variant="outline" size="icon" onClick={() => setTheme(isLightTheme ? 'dark' : 'light')} className="h-9 w-9 relative text-amber-400">
             {/* Ícone do Sol - visível apenas no tema claro */}
             <Sun className="h-4 w-4 rotate-0 scale-100 text-yellow-400 transition-all dark:-rotate-90 dark:scale-0 dark:text-transparent" />
             
@@ -35,6 +25,5 @@ export function ThemeToggle() {
           <p>{isLightTheme ? 'Alternar para modo escuro' : 'Alternar para modo claro'}</p>
         </TooltipContent>
       </Tooltip>
-    </TooltipProvider>
-  );
+    </TooltipProvider>;
 }
